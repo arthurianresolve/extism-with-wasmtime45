@@ -5,8 +5,8 @@ use std::{
     sync::TryLockError,
 };
 
-use anyhow::Context;
 use plugin_builder::PluginBuilderOptions;
+use wasmtime::error::Context as _;
 
 use crate::*;
 
@@ -53,7 +53,6 @@ impl CompiledPlugin {
     pub fn new(builder: PluginBuilder) -> Result<CompiledPlugin, Error> {
         let mut config = builder.config.unwrap_or_default();
         config
-            .async_support(false)
             .epoch_interruption(true)
             .debug_info(builder.options.debug_options.debug_info)
             .coredump_on_trap(builder.options.debug_options.coredump.is_some())
@@ -329,11 +328,14 @@ fn relink(
     linker.allow_shadowing(true);
 
     // Define PDK functions
+    use wasmtime::error::ToWasmtimeResult as _;
     macro_rules! add_funcs {
             ($($name:ident($($args:expr),*) $(-> $($r:expr),*)?);* $(;)?) => {
                 $(
                     let t = FuncType::new(&engine, [$($args),*], [$($($r),*)?]);
-                    linker.func_new(EXTISM_ENV_MODULE, stringify!($name), t, pdk::$name)?;
+                    linker.func_new(EXTISM_ENV_MODULE, stringify!($name), t, |c, i, o| {
+                        pdk::$name(c, i, o).to_wasmtime_result()
+                    })?;
                 )*
             };
         }
@@ -367,7 +369,7 @@ fn relink(
                     .is_none()
                 && linker
                     .get(&mut store, EXTISM_ENV_MODULE, import.name())
-                    .is_none()
+                    .is_err()
             {
                 let (kind, ty) = match import.ty() {
                     ExternType::Func(t) => ("function", t.to_string()),
@@ -401,7 +403,10 @@ fn relink(
         let name = f.name();
         let ns = f.namespace().unwrap_or(EXTISM_USER_MODULE);
         unsafe {
-            linker.func_new(ns, name, f.ty(engine).clone(), &*(f.f.as_ref() as *const _))?;
+            let func: &'static function::FunctionInner = &*(f.f.as_ref() as *const _);
+            linker.func_new(ns, name, f.ty(engine).clone(), move |c, i, o| {
+                func(c, i, o).to_wasmtime_result()
+            })?;
         }
     }
 
@@ -638,7 +643,7 @@ impl Plugin {
         self.reset()?;
         let handle = self.current_plugin_mut().memory_new(bytes)?;
 
-        if let Some(f) = self
+        if let Ok(f) = self
             .linker
             .get(&mut self.store, EXTISM_ENV_MODULE, "input_set")
         {
@@ -655,7 +660,7 @@ impl Plugin {
             )?;
         }
 
-        if let Some(Extern::Global(ctxt)) =
+        if let Ok(Extern::Global(ctxt)) =
             self.linker
                 .get(&mut self.store, EXTISM_ENV_MODULE, "extism_context")
         {
@@ -670,7 +675,7 @@ impl Plugin {
     pub fn reset(&mut self) -> Result<(), Error> {
         let id = self.id.to_string();
 
-        if let Some(f) = self.linker.get(&mut self.store, EXTISM_ENV_MODULE, "reset") {
+        if let Ok(f) = self.linker.get(&mut self.store, EXTISM_ENV_MODULE, "reset") {
             catch_out_of_fuel!(
                 &self.store,
                 f.into_func()
@@ -800,7 +805,7 @@ impl Plugin {
         let out = &mut [Val::I64(0)];
         let out_len = &mut [Val::I64(0)];
         let store = &mut self.store;
-        if let Some(f) = self
+        if let Ok(f) = self
             .linker
             .get(&mut *store, EXTISM_ENV_MODULE, "output_offset")
         {
@@ -814,7 +819,7 @@ impl Plugin {
         } else {
             anyhow::bail!("unable to set output")
         }
-        if let Some(f) = self
+        if let Ok(f) = self
             .linker
             .get(&mut *store, EXTISM_ENV_MODULE, "output_length")
         {
@@ -877,10 +882,14 @@ impl Plugin {
         let input = input.as_ref();
 
         if let Some(fuel) = self.fuel {
-            self.store.set_fuel(fuel).map_err(|x| (x, -1))?;
+            self.store.set_fuel(fuel).map_err(|x| (x.into(), -1))?;
         }
 
-        catch_out_of_fuel!(&self.store, self.reset_store(lock)).map_err(|x| (x, -1))?;
+        catch_out_of_fuel!(
+            &self.store,
+            self.reset_store(lock).map_err(wasmtime::Error::from_anyhow)
+        )
+        .map_err(|x| (x.into(), -1))?;
 
         self.instantiate(lock).map_err(|e| (e, -1))?;
 
@@ -889,7 +898,7 @@ impl Plugin {
             if let Some(inner) = self
                 .host_context
                 .data_mut(&mut self.store)
-                .map_err(|x| (x, -1))?
+                .map_err(|x| (x.into(), -1))?
             {
                 if let Some(inner) = inner.downcast_mut::<Box<dyn std::any::Any + Send + Sync>>() {
                     let x: Box<T> = Box::new(host_context);
@@ -957,7 +966,7 @@ impl Plugin {
 
         let mut rc = -1;
         if self.store.get_fuel().is_ok_and(|x| x == 0) {
-            res = Err(Error::msg("plugin ran out of fuel"));
+            res = Err(wasmtime::Error::msg("plugin ran out of fuel"));
         } else {
             // Get extism error
             let output_res = self.get_output_after_call().map_err(|x| (x, -1));
@@ -985,13 +994,13 @@ impl Plugin {
                             "call to {name} returned with error message: {}", x
                         );
                         if let Err(e) = res {
-                            res = Err(Error::msg(x).context(e));
+                            res = Err(wasmtime::Error::msg(x).context(e));
                         } else {
-                            res = Err(Error::msg(x))
+                            res = Err(wasmtime::Error::msg(x))
                         }
                     }
                     Err(msg) => {
-                        res = Err(Error::msg(format!(
+                        res = Err(wasmtime::Error::msg(format!(
                             "unable to load error message from memory: {msg}",
                         )));
                     }
@@ -1063,7 +1072,7 @@ impl Plugin {
                         return Ok(0);
                     }
 
-                    return Err((e, exit_code));
+                    return Err((e.into(), exit_code));
                 }
 
                 // Handle timeout interrupts
@@ -1086,7 +1095,7 @@ impl Plugin {
                     plugin = self.id.to_string(),
                     "call to {name} encountered an error: {e:?}"
                 );
-                Err((e, rc))
+                Err((e.into(), rc))
             }
         }
     }
@@ -1199,7 +1208,7 @@ impl Plugin {
         self.error_msg = None;
         let (linker, mut store) = self.linker_and_store();
         #[allow(clippy::needless_borrows_for_generic_args)]
-        if let Some(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_set") {
+        if let Ok(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_set") {
             let x = f
                 .into_func()
                 .unwrap()

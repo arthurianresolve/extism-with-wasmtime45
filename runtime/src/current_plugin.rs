@@ -1,4 +1,4 @@
-use anyhow::Context;
+use wasmtime::error::Context as _;
 
 use crate::*;
 
@@ -43,13 +43,13 @@ impl wasmtime::ResourceLimiter for MemoryLimiter {
     ) -> Result<bool> {
         if let Some(max) = maximum {
             if desired >= max {
-                return Err(Error::msg("oom"));
+                return Err(wasmtime::Error::msg("oom"));
             }
         }
 
         let d = desired - current;
         if d > self.bytes_left {
-            return Err(Error::msg("oom"));
+            return Err(wasmtime::Error::msg("oom"));
         }
 
         self.bytes_left -= d;
@@ -169,7 +169,7 @@ impl CurrentPlugin {
 
     pub fn memory_bytes_mut(&mut self, handle: MemoryHandle) -> Result<&mut [u8], Error> {
         let (linker, store) = self.linker_and_store();
-        if let Some(mem) = linker.get(&mut *store, EXTISM_ENV_MODULE, "memory") {
+        if let Ok(mem) = linker.get(&mut *store, EXTISM_ENV_MODULE, "memory") {
             let mem = mem.into_memory().unwrap();
             let ptr = unsafe { mem.data_ptr(&*store).add(handle.offset() as usize) };
             if ptr.is_null() {
@@ -183,7 +183,7 @@ impl CurrentPlugin {
 
     pub fn memory_bytes(&mut self, handle: MemoryHandle) -> Result<&[u8], Error> {
         let (linker, store) = self.linker_and_store();
-        if let Some(mem) = linker.get(&mut *store, EXTISM_ENV_MODULE, "memory") {
+        if let Ok(mem) = linker.get(&mut *store, EXTISM_ENV_MODULE, "memory") {
             let mem = mem.into_memory().unwrap();
             let ptr = unsafe { mem.data_ptr(&*store).add(handle.offset() as usize) };
             if ptr.is_null() {
@@ -197,7 +197,7 @@ impl CurrentPlugin {
 
     pub fn host_context<T: 'static>(&mut self) -> Result<&mut T, Error> {
         let (linker, store) = self.linker_and_store();
-        let Some(Extern::Global(xs)) = linker.get(&mut *store, EXTISM_ENV_MODULE, "extism_context")
+        let Ok(Extern::Global(xs)) = linker.get(&mut *store, EXTISM_ENV_MODULE, "extism_context")
         else {
             anyhow::bail!("unable to locate an extism kernel global: extism_context",)
         };
@@ -228,7 +228,7 @@ impl CurrentPlugin {
         }
         let (linker, mut store) = self.linker_and_store();
         let output = &mut [Val::I64(0)];
-        if let Some(f) = linker.get(&mut store, EXTISM_ENV_MODULE, "alloc") {
+        if let Ok(f) = linker.get(&mut store, EXTISM_ENV_MODULE, "alloc") {
             catch_out_of_fuel!(
                 &store,
                 f.into_func()
@@ -258,7 +258,7 @@ impl CurrentPlugin {
     /// Free a block of Extism plugin memory
     pub fn memory_free(&mut self, handle: MemoryHandle) -> Result<(), Error> {
         let (linker, store) = self.linker_and_store();
-        if let Some(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "free") {
+        if let Ok(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "free") {
             catch_out_of_fuel!(
                 &store,
                 f.into_func()
@@ -275,7 +275,7 @@ impl CurrentPlugin {
     pub fn memory_length(&mut self, offs: u64) -> Result<u64, Error> {
         let (linker, store) = self.linker_and_store();
         let output = &mut [Val::I64(0)];
-        if let Some(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "length") {
+        if let Ok(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "length") {
             catch_out_of_fuel!(
                 &store,
                 f.into_func()
@@ -299,7 +299,7 @@ impl CurrentPlugin {
     pub fn memory_length_unsafe(&mut self, offs: u64) -> Result<u64, Error> {
         let (linker, store) = self.linker_and_store();
         let output = &mut [Val::I64(0)];
-        if let Some(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "length_unsafe") {
+        if let Ok(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "length_unsafe") {
             catch_out_of_fuel!(
                 &store,
                 f.into_func()
@@ -424,7 +424,8 @@ impl CurrentPlugin {
     pub(crate) fn memory(&mut self) -> Option<wasmtime::Memory> {
         let (linker, mut store) = self.linker_and_store();
         linker
-            .get(&mut store, EXTISM_ENV_MODULE, "memory")?
+            .get(&mut store, EXTISM_ENV_MODULE, "memory")
+            .ok()?
             .into_memory()
     }
 
@@ -452,7 +453,7 @@ impl CurrentPlugin {
     pub fn clear_error(&mut self) {
         trace!(plugin = self.id.to_string(), "CurrentPlugin::clear_error");
         let (linker, store) = self.linker_and_store();
-        if let Some(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_set") {
+        if let Ok(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_set") {
             let res = f
                 .into_func()
                 .unwrap()
@@ -486,7 +487,7 @@ impl CurrentPlugin {
         debug!(plugin = self.id.to_string(), "set error: {:?}", s);
         let handle = self.memory_new(s)?;
         let (linker, store) = self.linker_and_store();
-        if let Some(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_set") {
+        if let Ok(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_set") {
             catch_out_of_fuel!(
                 &store,
                 f.into_func()
@@ -503,7 +504,7 @@ impl CurrentPlugin {
     pub(crate) fn get_error_position(&mut self) -> (u64, u64) {
         let (linker, store) = self.linker_and_store();
         let output = &mut [Val::I64(0)];
-        if let Some(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_get") {
+        if let Ok(f) = linker.get(&mut *store, EXTISM_ENV_MODULE, "error_get") {
             if let Err(e) = catch_out_of_fuel!(
                 &store,
                 f.into_func().unwrap().call(&mut *store, &[], output)

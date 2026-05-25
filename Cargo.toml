@@ -8,11 +8,11 @@ edition = "2021"
 authors = ["The Extism Authors", "oss@extism.org"]
 license = "BSD-3-Clause"
 homepage = "https://extism.org"
-repository = "https://github.com/extism/extism"
-version = "0.0.0+replaced-by-ci"
+repository = "https://github.com/arthurianresolve/extism-with-wasmtime45"
+version = "1.21.0+wasmtime45"
 
 [workspace.dependencies]
-extism = { path = "./runtime", version = "0.0.0+replaced-by-ci" }
-extism-convert = { path = "./convert", version = "0.0.0+replaced-by-ci" }
-extism-convert-macros = { path = "./convert-macros", version = "0.0.0+replaced-by-ci" }
-extism-manifest = { path = "./manifest", version = "0.0.0+replaced-by-ci" }
+extism = { path = "./runtime", version = "1.21.0" }
+extism-convert = { path = "./convert", version = "1.21.0" }
+extism-convert-macros = { path = "./convert-macros", version = "1.21.0" }
+extism-manifest = { path = "./manifest", version = "1.21.0" }
