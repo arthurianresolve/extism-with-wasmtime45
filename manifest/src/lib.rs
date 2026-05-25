@@ -240,17 +240,15 @@ struct DataPtrLength {
 }
 
 #[cfg(feature = "json_schema")]
-fn wasmdata_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-    use schemars::{schema::SchemaObject, JsonSchema};
-    let mut schema: SchemaObject = <String>::json_schema(gen).into();
-    let objschema: SchemaObject = <DataPtrLength>::json_schema(gen).into();
-    let types = schemars::schema::SingleOrVec::<schemars::schema::InstanceType>::Vec(vec![
-        schemars::schema::InstanceType::String,
-        schemars::schema::InstanceType::Object,
-    ]);
-    schema.instance_type = Some(types);
-    schema.object = objschema.object;
-    schema.into()
+fn wasmdata_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    use schemars::{json_schema, JsonSchema};
+
+    let string_schema = <String>::json_schema(generator);
+    let object_schema = generator.subschema_for::<DataPtrLength>();
+
+    json_schema!({
+        "anyOf": [string_schema, object_schema]
+    })
 }
 
 /// The `Manifest` type is used to configure the runtime and specify how to load modules.
