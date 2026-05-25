@@ -45,6 +45,15 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 - Aligned test code with the Rust 1.95 / Wasmtime 45 lint surface by marking a
   derive-only conversion fixture with `#[expect(dead_code)]` and removing an
   unnecessary clone from a `Copy` `wasmtime::Val` in the pool test.
+- Integrated the cargo dependency refresh that was pending on fork maintenance
+  branches:
+  - `toml`: `0.9` -> `1.1`
+  - `sha2`: `0.10` -> `0.11`
+  - `criterion`: `0.7.0` -> `0.8.2`
+  - `rand`: `0.9.0` -> `0.10.1`
+  - `schemars`: `0.8` -> `1.2`
+- Adapted optional manifest JSON Schema generation to the Schemars 1.2 API and
+  updated the Rand property-test import for Rand 0.10.
 - Added `SECURITY-WASMTIME45.md` documenting the Wasmtime advisory baseline and
   why the fork exists.
 
@@ -105,6 +114,17 @@ Additional Rust 1.95 syntax and lint alignment was validated with:
 - `cargo test -p extism test_pool_with_captured_builder -- --nocapture`
 
 The full parallel Rust runtime test suite passed after the pool checkout fix.
+
+The cargo dependency refresh was validated with:
+
+- `cargo fmt --all -- --check`
+- `cargo check --workspace`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo check -p extism-manifest --features json_schema --examples`
+- `cargo test -p extism test_toml_manifest -- --nocapture`
+- `cargo test -p extism check_alloc_with_load_and_store -- --nocapture`
+- `cargo test -p extism --benches --no-run`
+- `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo bench -p extism --no-run`
 
 Prefer returning to upstream Extism as soon as an official release supports the
 required Wasmtime security baseline.
