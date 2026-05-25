@@ -177,6 +177,7 @@ fn test() {
     use serde::Serialize;
 
     #[derive(ToBytes, Serialize)]
+    #[expect(dead_code, reason = "compile-only derive fixture")]
     #[encoding(Json)]
     struct Struct {
         hello: String,

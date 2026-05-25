@@ -42,6 +42,9 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 - Fixed pool checkout behavior by reserving capacity under the mutex and
   creating plugins outside the mutex. This prevents unrelated waiters from
   spending their timeout behind slow Wasmtime plugin compilation.
+- Aligned test code with the Rust 1.95 / Wasmtime 45 lint surface by marking a
+  derive-only conversion fixture with `#[expect(dead_code)]` and removing an
+  unnecessary clone from a `Copy` `wasmtime::Val` in the pool test.
 - Added `SECURITY-WASMTIME45.md` documenting the Wasmtime advisory baseline and
   why the fork exists.
 
@@ -93,6 +96,13 @@ The fork was validated with:
 - `cargo fmt --all -- --check`
 - `CARGO_INCREMENTAL=0 cargo clippy -p extism -- -D warnings`
 - `cargo audit`
+
+Additional Rust 1.95 syntax and lint alignment was validated with:
+
+- `cargo check --workspace`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test -p extism-convert test -- --nocapture`
+- `cargo test -p extism test_pool_with_captured_builder -- --nocapture`
 
 The full parallel Rust runtime test suite passed after the pool checkout fix.
 

@@ -80,7 +80,7 @@ fn test_pool_with_captured_builder() {
              inputs: &[Val],
              outputs: &mut [Val],
              _user_data: UserData<String>| {
-                outputs[0] = inputs[0].clone();
+                outputs[0] = inputs[0];
                 Ok(())
             },
         );
