@@ -1,3 +1,104 @@
+## Fork Notice: Wasmtime 45 Runtime Baseline
+
+This repository is a temporary fork of `extism/extism` for Rust hosts that need
+Extism v1.21.0 API compatibility with a Wasmtime 45 security baseline before an
+official upstream Extism release supports it.
+
+Base upstream: `extism/extism` tag `v1.21.0`, commit `9afa572`.
+
+Fork repository: `arthurianresolve/extism-with-wasmtime45`.
+
+### What This Fork Covers
+
+- Rust SDK/runtime source in `runtime/`.
+- The workspace crates needed by that Rust runtime: `runtime`, `manifest`,
+  `convert`, and `convert-macros`.
+- WASIp1 execution through Extism's existing `wasi-common` / `wiggle` path.
+- The Extism Rust APIs used by Caliburn's `plugins-wasm` integration: loading a
+  `.wasm` file, registering host functions, calling plugin exports, memory
+  exchange helpers, and per-call plugin construction.
+- A Rust runtime pool fix for concurrent checkout under slow plugin creation.
+
+### Changes From Upstream v1.21.0
+
+- Upgraded runtime dependency train:
+  - `wasmtime`: `41` -> `45`
+  - `wasi-common`: `41` -> `45`
+  - `wiggle`: `41` -> `45`
+- Raised the pinned Rust toolchain from `1.90.0` to `1.95.0` because Wasmtime 45
+  requires Rust `1.93.0` or newer.
+- Updated workspace metadata to identify this fork as
+  `1.21.0+wasmtime45` and point repository metadata at this GitHub repository.
+- Adapted the runtime to Wasmtime 45 API changes:
+  - `Linker::get` now returns `Result<Extern, wasmtime::Error>` instead of
+    `Option<Extern>`.
+  - Host functions now bridge `anyhow::Error` into `wasmtime::Error` with
+    `ToWasmtimeResult` where Wasmtime requires its own error type.
+  - Runtime error contexts now use `wasmtime::error::Context` on Wasmtime call
+    paths.
+  - Resource limiter and fuel errors now use `wasmtime::Error` internally and
+    convert back to Extism's public `anyhow::Error` surface at API boundaries.
+  - Removed deprecated `Config::async_support(false)` usage.
+- Fixed pool checkout behavior by reserving capacity under the mutex and
+  creating plugins outside the mutex. This prevents unrelated waiters from
+  spending their timeout behind slow Wasmtime plugin compilation.
+- Added `SECURITY-WASMTIME45.md` documenting the Wasmtime advisory baseline and
+  why the fork exists.
+
+### Security Coverage
+
+The Wasmtime 45 baseline includes the April 2026 Wasmtime advisory set and the
+May 2026 WASI permission advisory. This fork is intended to clear the Wasmtime
+41.x advisory lane that blocked Caliburn while Extism still depended on
+Wasmtime `^41`.
+
+Covered issue classes include:
+
+- Critical aarch64 Cranelift sandbox escape.
+- Critical Winch sandbox escape.
+- Component-model string transcoding issues.
+- Winch table and data-leakage issues.
+- Pooling allocator data leakage.
+- WASI `path_open(TRUNCATE)` host write-permission bypass.
+
+See `SECURITY-WASMTIME45.md` for advisory identifiers and links.
+
+### Explicit Non-Coverage
+
+This fork is intentionally narrow. It does **not** cover:
+
+- Published crates.io packages.
+- `libextism` C ABI release artifacts or downstream C-ABI package publishing.
+- Python SDK wheels, Node/npm packages, Java artifacts, .NET/NuGet packages,
+  RubyGems, Packagist packages, CPAN packages, opam packages, or Hackage
+  packages.
+- The separate Go SDK or JavaScript SDK repositories.
+- Python/C-ABI lifecycle reports such as `extism_plugin_free` memory leak
+  reports unless they are proven to affect the Rust SDK path directly.
+- WASI Preview 2, the Component Model, or WIT-based plugin interfaces.
+- WASI threads support.
+- Async cancellation support for guest code blocked in uninterrupted sleeps or
+  long-running host functions.
+- `allowed_paths` redesign, single-file mounts, or breaking manifest path
+  semantics.
+- New observability/Observe SDK integration.
+- A new runtime API for listing all exported plugin functions.
+
+### Validation Evidence
+
+The fork was validated with:
+
+- `cargo check -p extism`
+- `CARGO_INCREMENTAL=0 cargo test -p extism`
+- `cargo fmt --all -- --check`
+- `CARGO_INCREMENTAL=0 cargo clippy -p extism -- -D warnings`
+- `cargo audit`
+
+The full parallel Rust runtime test suite passed after the pool checkout fix.
+
+Prefer returning to upstream Extism as soon as an official release supports the
+required Wasmtime security baseline.
+
 <div align="center">
     <a href="https://extism.org">
     <picture>
