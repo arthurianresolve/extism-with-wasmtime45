@@ -47,7 +47,7 @@ impl Default for PoolBuilder {
 type PluginSource = dyn Fn() -> Result<Plugin, Error> + Send + Sync;
 
 struct PoolInner {
-    plugin_source: Box<PluginSource>,
+    plugin_source: Arc<PluginSource>,
     /// Available plugins ready to be checked out
     available: VecDeque<Plugin>,
     /// Current number of plugins (checked out + available)
@@ -78,7 +78,7 @@ impl Pool {
         let cond = Arc::new(Condvar::new());
         Pool {
             inner: Arc::new(Mutex::new(PoolInner {
-                plugin_source: Box::new(source),
+                plugin_source: Arc::new(source),
                 available: VecDeque::new(),
                 current_size: 0,
                 max_size: builder.max_instances,
@@ -99,7 +99,8 @@ impl Pool {
     pub fn get(&self, timeout: std::time::Duration) -> Result<Option<PoolPlugin>, Error> {
         let start = std::time::Instant::now();
 
-        // Hold lock throughout except when waiting on condition variable
+        // Hold the lock only while checking pool state. Plugin creation can be
+        // slow, so reserve capacity and build outside the lock.
         let mut inner = self.inner.lock().unwrap();
 
         loop {
@@ -114,8 +115,21 @@ impl Pool {
 
             // Create new plugin if under capacity
             if inner.current_size < inner.max_size {
-                let plugin = (*inner.plugin_source)()?;
+                let plugin_source = inner.plugin_source.clone();
                 inner.current_size += 1;
+                drop(inner);
+
+                let plugin = match plugin_source() {
+                    Ok(plugin) => plugin,
+                    Err(err) => {
+                        let mut inner = self.inner.lock().unwrap();
+                        inner.current_size -= 1;
+                        drop(inner);
+                        self.cond.notify_one();
+                        return Err(err);
+                    }
+                };
+
                 return Ok(Some(PoolPlugin {
                     plugin: Some(plugin),
                     pool: Arc::downgrade(&self.inner),

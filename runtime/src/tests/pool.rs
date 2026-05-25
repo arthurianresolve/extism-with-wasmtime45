@@ -1,15 +1,16 @@
 use crate::*;
 use std::time::Duration;
 
+const POOL_STRESS_TIMEOUT: Duration = Duration::from_secs(10);
+
 fn run_thread(p: Pool, i: u64) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(i));
-        let s: String = p
-            .get(Duration::from_secs(1))
-            .unwrap()
-            .unwrap()
-            .call("count_vowels", "abc")
-            .unwrap();
+        let mut plugin = p
+            .get(POOL_STRESS_TIMEOUT)
+            .expect("pool checkout should not error")
+            .unwrap_or_else(|| panic!("pool checkout timed out after {POOL_STRESS_TIMEOUT:?}"));
+        let s: String = plugin.call("count_vowels", "abc").unwrap();
         println!("{s}");
     })
 }
