@@ -22,9 +22,9 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 ### Changes From Upstream v1.21.0
 
 - Upgraded runtime dependency train:
-  - `wasmtime`: `41` -> `45`
-  - `wasi-common`: `41` -> `45`
-  - `wiggle`: `41` -> `45`
+  - `wasmtime`: `41` -> `45.0.1`
+  - `wasi-common`: `41` -> `45.0.1`
+  - `wiggle`: `41` -> `45.0.1`
 - Raised the pinned Rust toolchain from `1.90.0` to `1.95.0` because Wasmtime 45
   requires Rust `1.93.0` or newer.
 - Updated workspace metadata to identify this fork as
@@ -52,6 +52,7 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
   - `criterion`: `0.7.0` -> `0.8.2`
   - `rand`: `0.9.0` -> `0.10.1`
   - `schemars`: `0.8` -> `1.2`
+  - `prost`: `0.14.1` -> `0.14.4`
   - `protobuf`: `3.2.0` -> `3.7.2`
 - `protobuf` remains on the 3.x line because `protobuf` 4.x is a new
   implementation with a changed API; the existing `extism-convert` wrapper uses
