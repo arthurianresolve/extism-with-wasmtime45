@@ -246,9 +246,10 @@ jobs:
             exit 1
           fi
 
-          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
-          gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/latest" 2>/dev/null || true
+          gh release delete latest --repo "${{ github.repository }}" --yes --cleanup-tag >/dev/null 2>&1 || true
+          gh api --silent -X DELETE "repos/${{ github.repository }}/git/refs/tags/latest" >/dev/null 2>&1 || true
           gh release create latest "${files[@]}" \
+            --repo "${{ github.repository }}" \
             --title "Development Build" \
             --prerelease \
             --target "$GITHUB_SHA"
