@@ -27,23 +27,23 @@ jobs:
           - stable
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           override: true
       - name: Cache Rust environment
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Cache libextism
         id: cache-libextism
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: target/release/libextism.*
           key: ${{ runner.os }}-libextism-${{ hashFiles('runtime/**') }}-${{ hashFiles('manifest/**') }}-${{ hashFiles('convert/**') }}
       - name: Cache target
         id: cache-target
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: target/**
           key: ${{ runner.os }}-target-${{ github.sha }}
@@ -67,17 +67,17 @@ jobs:
           - stable
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           override: true
       - name: Cache Rust environment
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Cache target
         id: cache-target
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: target/**
           key: ${{ runner.os }}-target-${{ github.sha }}
@@ -101,17 +101,17 @@ jobs:
           - stable
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           override: true
       - name: Cache Rust environment
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Cache target
         id: cache-target
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: target/**
           key: ${{ runner.os }}-target-${{ github.sha }}

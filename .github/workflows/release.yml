@@ -7,6 +7,11 @@ on:
 
 name: Release
 
+permissions:
+  actions: read
+  contents: write
+  packages: read
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -83,7 +88,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Set version
         shell: bash
@@ -121,7 +126,7 @@ jobs:
         run: |
           cargo build --release --target ${{ matrix.target }} -p ${{ env.RUNTIME_CRATE }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
@@ -198,7 +203,7 @@ jobs:
           path: ${{ env.ARTIFACT_DIR }}
 
       - name: Upload Artifact to Draft Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           files: |
@@ -216,14 +221,21 @@ jobs:
           pattern: release-artifacts-*
           merge-multiple: true
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: true
-          title: "Development Build"
-          files: |
-            *.tar.gz
-            *.txt
-            *.whl
-        if: github.ref == 'refs/heads/main'
+      - name: Create latest release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(./*.tar.gz ./*.txt ./*.whl)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release files found"
+            exit 1
+          fi
+
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/latest" 2>/dev/null || true
+          gh release create latest "${files[@]}" \
+            --title "Development Build" \
+            --prerelease \
+            --target "$GITHUB_SHA"
