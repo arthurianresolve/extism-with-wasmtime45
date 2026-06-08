@@ -58,6 +58,9 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
   4.x API by replacing the removed 3.x `Message::write_to_bytes` and
   `Message::parse_from_bytes` calls with `Serialize::serialize` and
   `Parse::parse`.
+- Rechecked dependency freshness on the `protobuf-4.x` branch on 2026-06-08:
+  the direct Wasmtime, WASI, Wiggle, Prost, and Protobuf floors were current;
+  `libc` remains on the stable `0.2` line rather than the `1.0.0-alpha` line.
 - Adapted optional manifest JSON Schema generation to the Schemars 1.2 API and
   updated the Rand property-test import for Rand 0.10.
 - Added `SECURITY-WASMTIME45.md` documenting the Wasmtime advisory baseline and
@@ -129,6 +132,7 @@ The cargo dependency refresh was validated with:
 - `cargo check -p extism-manifest --features json_schema --examples`
 - `cargo check -p extism-convert --features protobuf`
 - `cargo test -p extism-convert --features protobuf`
+- `cargo update`
 - `cargo test -p extism test_toml_manifest -- --nocapture`
 - `cargo test -p extism check_alloc_with_load_and_store -- --nocapture`
 - `cargo test -p extism --benches --no-run`
