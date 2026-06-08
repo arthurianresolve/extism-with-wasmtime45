@@ -150,14 +150,14 @@ impl<T: protobuf::Message> ToBytes<'_> for Protobuf<T> {
     type Bytes = Vec<u8>;
 
     fn to_bytes(&self) -> Result<Self::Bytes, Error> {
-        Ok(self.0.write_to_bytes()?)
+        Ok(protobuf::Serialize::serialize(&self.0)?)
     }
 }
 
 #[cfg(feature = "protobuf")]
 impl<T: Default + protobuf::Message> FromBytesOwned for Protobuf<T> {
     fn from_bytes_owned(data: &[u8]) -> Result<Self, Error> {
-        Ok(Protobuf(T::parse_from_bytes(data)?))
+        Ok(Protobuf(T::parse(data)?))
     }
 }
 

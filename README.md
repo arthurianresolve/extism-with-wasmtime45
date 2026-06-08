@@ -53,10 +53,11 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
   - `rand`: `0.9.0` -> `0.10.1`
   - `schemars`: `0.8` -> `1.2`
   - `prost`: `0.14.1` -> `0.14.4`
-  - `protobuf`: `3.2.0` -> `3.7.2`
-- `protobuf` remains on the 3.x line because `protobuf` 4.x is a new
-  implementation with a changed API; the existing `extism-convert` wrapper uses
-  the 3.x `Message::write_to_bytes` and `Message::parse_from_bytes` APIs.
+  - `protobuf`: `3.2.0` -> `4.35.0-release`
+- Adapted the optional `extism-convert` `protobuf` wrapper to the `protobuf`
+  4.x API by replacing the removed 3.x `Message::write_to_bytes` and
+  `Message::parse_from_bytes` calls with `Serialize::serialize` and
+  `Parse::parse`.
 - Adapted optional manifest JSON Schema generation to the Schemars 1.2 API and
   updated the Rand property-test import for Rand 0.10.
 - Added `SECURITY-WASMTIME45.md` documenting the Wasmtime advisory baseline and
@@ -127,6 +128,7 @@ The cargo dependency refresh was validated with:
 - `cargo clippy --workspace --all-targets -- -D warnings`
 - `cargo check -p extism-manifest --features json_schema --examples`
 - `cargo check -p extism-convert --features protobuf`
+- `cargo test -p extism-convert --features protobuf`
 - `cargo test -p extism test_toml_manifest -- --nocapture`
 - `cargo test -p extism check_alloc_with_load_and_store -- --nocapture`
 - `cargo test -p extism --benches --no-run`
