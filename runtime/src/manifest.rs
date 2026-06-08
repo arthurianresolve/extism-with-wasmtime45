@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as FmtWrite;
+#[cfg(feature = "register-http")]
 use std::io::Read;
 
 use sha2::Digest;
