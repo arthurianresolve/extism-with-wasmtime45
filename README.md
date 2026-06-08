@@ -1,10 +1,10 @@
 ## Fork Notice: Wasmtime 45 Runtime Baseline
 
 This repository is a temporary fork of `extism/extism` for Rust hosts that need
-Extism v1.21.0 API compatibility with a Wasmtime 45 security baseline before an
+Extism v1.30.0 API compatibility with a Wasmtime 45 security baseline before an
 official upstream Extism release supports it.
 
-Base upstream: `extism/extism` tag `v1.21.0`, commit `9afa572`.
+Base upstream: `extism/extism` tag `v1.30.0`, commit `7038ad1`.
 
 Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 
@@ -19,16 +19,16 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
   exchange helpers, and per-call plugin construction.
 - A Rust runtime pool fix for concurrent checkout under slow plugin creation.
 
-### Changes From Upstream v1.21.0
+### Changes From Upstream v1.30.0
 
 - Upgraded runtime dependency train:
-  - `wasmtime`: `41` -> `45.0.1`
-  - `wasi-common`: `41` -> `45.0.1`
-  - `wiggle`: `41` -> `45.0.1`
-- Raised the pinned Rust toolchain from `1.90.0` to `1.95.0` because Wasmtime 45
+  - `wasmtime`: `43` -> `45.0.1`
+  - `wasi-common`: `43` -> `45.0.1`
+  - `wiggle`: `43` -> `45.0.1`
+- Raised the pinned Rust toolchain from `1.91.0` to `1.96.0` because Wasmtime 45
   requires Rust `1.93.0` or newer.
 - Updated workspace metadata to identify this fork as
-  `1.21.0+wasmtime45` and point repository metadata at this GitHub repository.
+  `1.30.0+wasmtime45` and point repository metadata at this GitHub repository.
 - Adapted the runtime to Wasmtime 45 API changes:
   - `Linker::get` now returns `Result<Extern, wasmtime::Error>` instead of
     `Option<Extern>`.
