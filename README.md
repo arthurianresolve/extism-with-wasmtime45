@@ -1,10 +1,10 @@
 ## Fork Notice: Wasmtime 45 Runtime Baseline
 
 This repository is a temporary fork of `extism/extism` for Rust hosts that need
-Extism v1.21.0 API compatibility with a Wasmtime 45 security baseline before an
+Extism v1.30.0 API compatibility with a Wasmtime 45 security baseline before an
 official upstream Extism release supports it.
 
-Base upstream: `extism/extism` tag `v1.21.0`, commit `9afa572`.
+Base upstream: `extism/extism` tag `v1.30.0`, commit `7038ad1`.
 
 Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 
@@ -19,16 +19,16 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
   exchange helpers, and per-call plugin construction.
 - A Rust runtime pool fix for concurrent checkout under slow plugin creation.
 
-### Changes From Upstream v1.21.0
+### Changes From Upstream v1.30.0
 
 - Upgraded runtime dependency train:
-  - `wasmtime`: `41` -> `45.0.1`
-  - `wasi-common`: `41` -> `45.0.1`
-  - `wiggle`: `41` -> `45.0.1`
-- Raised the pinned Rust toolchain from `1.90.0` to `1.95.0` because Wasmtime 45
+  - `wasmtime`: `43` -> `45.0.1`
+  - `wasi-common`: `43` -> `45.0.1`
+  - `wiggle`: `43` -> `45.0.1`
+- Raised the pinned Rust toolchain from `1.91.0` to `1.96.0` because Wasmtime 45
   requires Rust `1.93.0` or newer.
 - Updated workspace metadata to identify this fork as
-  `1.21.0+wasmtime45` and point repository metadata at this GitHub repository.
+  `1.30.0+wasmtime45` and point repository metadata at this GitHub repository.
 - Adapted the runtime to Wasmtime 45 API changes:
   - `Linker::get` now returns `Result<Extern, wasmtime::Error>` instead of
     `Option<Extern>`.
@@ -42,7 +42,7 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 - Fixed pool checkout behavior by reserving capacity under the mutex and
   creating plugins outside the mutex. This prevents unrelated waiters from
   spending their timeout behind slow Wasmtime plugin compilation.
-- Aligned test code with the Rust 1.95 / Wasmtime 45 lint surface by marking a
+- Aligned test code with the Rust 1.96 / Wasmtime 45 lint surface by marking a
   derive-only conversion fixture with `#[expect(dead_code)]` and removing an
   unnecessary clone from a `Copy` `wasmtime::Val` in the pool test.
 - Integrated the cargo dependency refresh that was pending on fork maintenance
@@ -66,8 +66,8 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 
 The Wasmtime 45 baseline includes the April 2026 Wasmtime advisory set and the
 May 2026 WASI permission advisory. This fork is intended to clear the Wasmtime
-41.x advisory lane that blocked Caliburn while Extism still depended on
-Wasmtime `^41`.
+43.x advisory lane that blocked Caliburn while Extism still depended on
+Wasmtime `^43`.
 
 Covered issue classes include:
 
