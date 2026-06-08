@@ -19,6 +19,7 @@ wasmtime = { version = "45.0.1", default-features = false, features = [
   'parallel-compilation',
   'pooling-allocator',
   'demangle',
+  'anyhow',
 ] }
 wasi-common = "45.0.1"
 wiggle = "45.0.1"
