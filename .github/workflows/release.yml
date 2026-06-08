@@ -1,11 +1,14 @@
 on:
   workflow_dispatch:
   push:
-    branches: [ main, "v*" ]
+    branches: [ main, protobuf-4.x, "v*" ]
     tags:
       - 'v*'
 
 name: Release
+
+env:
+  NODE_VERSION: '26.1.0'
 
 permissions:
   actions: read
@@ -94,7 +97,7 @@ jobs:
         shell: bash
         run: |
           version="${{ github.ref }}"
-          if [[ "$version" = "refs/heads/main" ]]; then
+          if [[ "$version" = "refs/heads/${{ github.event.repository.default_branch }}" || "$version" = "refs/heads/main" ]]; then
             version="0.0.0-dev"
           else
             version="${version/refs\/tags\/v/}"
@@ -112,7 +115,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "${{matrix.os}}-${{matrix.target}}"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          save-if: ${{ github.ref_name == github.event.repository.default_branch || github.ref == 'refs/heads/main' }}
           cache-on-failure: "true"
 
       - name: Build Target (${{ matrix.os }} ${{ matrix.target }})
@@ -214,8 +217,18 @@ jobs:
     name: create latest release
     runs-on: ubuntu-latest
     needs: [release]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref_name == github.event.repository.default_branch || github.ref == 'refs/heads/main'
     steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verify Node.js
+        shell: bash
+        run: |
+          test "$(node --version)" = "v${NODE_VERSION}"
+
       - uses: actions/download-artifact@v4
         with:
           pattern: release-artifacts-*
