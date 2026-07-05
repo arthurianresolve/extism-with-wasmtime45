@@ -25,8 +25,10 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
   - `wasmtime`: `43` -> `46.0.1`
   - `wasi-common`: `43` -> `46.0.1`
   - `wiggle`: `43` -> `46.0.1`
-- Raised the pinned Rust toolchain from `1.91.0` to `1.96.0` because Wasmtime 46
+- Raised the pinned Rust toolchain from `1.91.0` to `1.96.1` because Wasmtime 46
   requires Rust `1.94.0` or newer.
+- Rechecked the Rust 1.96.1 syntax and lint surface; no source changes were
+  required for either the workspace crates or the standalone kernel crate.
 - Updated workspace metadata to identify this fork as
   `1.30.0+wasmtime46` and point repository metadata at this GitHub repository.
 - Adapted the runtime to Wasmtime 45 and 46 API changes:
@@ -162,6 +164,14 @@ The Wasmtime 46 upgrade and API-surface compatibility pass was validated with:
 - `cargo test -p extism-convert --features protobuf`
 - `cargo check --manifest-path kernel/Cargo.toml --target wasm32-unknown-unknown`
 - `cargo fmt --all -- --check`
+
+The Rust 1.96.1 toolchain bump was syntax-checked with:
+
+- `cargo fmt --all -- --check`
+- `cargo check --workspace`
+- `cargo check -p extism-convert --features protobuf`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo check --manifest-path kernel/Cargo.toml --target wasm32-unknown-unknown`
 
 Prefer returning to upstream Extism as soon as an official release supports the
 required Wasmtime security baseline.
