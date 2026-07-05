@@ -1,7 +1,7 @@
-## Fork Notice: Wasmtime 45 Runtime Baseline
+## Fork Notice: Wasmtime 46 Runtime Baseline
 
 This repository is a temporary fork of `extism/extism` for Rust hosts that need
-Extism v1.30.0 API compatibility with a Wasmtime 45 security baseline before an
+Extism v1.30.0 API compatibility with a Wasmtime 46 security baseline before an
 official upstream Extism release supports it.
 
 Base upstream: `extism/extism` tag `v1.30.0`, commit `7038ad1`.
@@ -22,14 +22,14 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 ### Changes From Upstream v1.30.0
 
 - Upgraded runtime dependency train:
-  - `wasmtime`: `43` -> `45.0.1`
-  - `wasi-common`: `43` -> `45.0.1`
-  - `wiggle`: `43` -> `45.0.1`
-- Raised the pinned Rust toolchain from `1.91.0` to `1.96.0` because Wasmtime 45
-  requires Rust `1.93.0` or newer.
+  - `wasmtime`: `43` -> `46.0.1`
+  - `wasi-common`: `43` -> `46.0.1`
+  - `wiggle`: `43` -> `46.0.1`
+- Raised the pinned Rust toolchain from `1.91.0` to `1.96.0` because Wasmtime 46
+  requires Rust `1.94.0` or newer.
 - Updated workspace metadata to identify this fork as
-  `1.30.0+wasmtime45` and point repository metadata at this GitHub repository.
-- Adapted the runtime to Wasmtime 45 API changes:
+  `1.30.0+wasmtime46` and point repository metadata at this GitHub repository.
+- Adapted the runtime to Wasmtime 45 and 46 API changes:
   - `Linker::get` now returns `Result<Extern, wasmtime::Error>` instead of
     `Option<Extern>`.
   - Host functions now bridge `anyhow::Error` into `wasmtime::Error` with
@@ -61,15 +61,25 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 - Rechecked dependency freshness on the `protobuf-4.x` branch on 2026-06-08:
   the direct Wasmtime, WASI, Wiggle, Prost, and Protobuf floors were current;
   `libc` remains on the stable `0.2` line rather than the `1.0.0-alpha` line.
+- Rechecked dependency freshness on the `protobuf-4.x` branch on 2026-07-05
+  and upgraded the Wasmtime dependency train from `45.0.3` to `46.0.1`.
+- Adapted fuel-limit handling for Wasmtime 46 so wrapper setup work does not
+  consume the caller's configured guest-execution fuel budget, and failed guest
+  execution resets the store before the next call.
+- Updated the reusable GitHub composite action pins to current workflow
+  equivalents: `actions/checkout@v6`,
+  `actions-rust-lang/setup-rust-toolchain@v1`, `Swatinem/rust-cache@v2`, and
+  `actions/cache@v5`.
 - Adapted optional manifest JSON Schema generation to the Schemars 1.2 API and
   updated the Rand property-test import for Rand 0.10.
-- Added `SECURITY-WASMTIME45.md` documenting the Wasmtime advisory baseline and
+- Added `SECURITY-WASMTIME46.md` documenting the Wasmtime advisory baseline and
   why the fork exists.
 
 ### Security Coverage
 
-The Wasmtime 45 baseline includes the April 2026 Wasmtime advisory set and the
-May 2026 WASI permission advisory. This fork is intended to clear the Wasmtime
+The Wasmtime 46 baseline includes the April 2026 Wasmtime advisory set, the
+May 2026 WASI permission advisory, and the June 2026 WASI FilePerms advisory.
+This fork is intended to clear the Wasmtime
 41.x advisory lane that blocked Caliburn while Extism still depended on
 Wasmtime `^41`.
 
@@ -81,8 +91,9 @@ Covered issue classes include:
 - Winch table and data-leakage issues.
 - Pooling allocator data leakage.
 - WASI `path_open(TRUNCATE)` host write-permission bypass.
+- WASI hard-link and rename destination permission checks.
 
-See `SECURITY-WASMTIME45.md` for advisory identifiers and links.
+See `SECURITY-WASMTIME46.md` for advisory identifiers and links.
 
 ### Explicit Non-Coverage
 

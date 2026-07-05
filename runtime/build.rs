@@ -18,6 +18,7 @@ fn main() {
         .with_pragma_once(true)
         .with_cpp_compat(true)
         .with_after_include(fn_macro)
+        .exclude_item("PTR")
         .rename_item("Size", "ExtismSize")
         .rename_item("ValType", "ExtismValType")
         .rename_item("ValUnion", "ExtismValUnion")

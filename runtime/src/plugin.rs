@@ -461,8 +461,8 @@ impl Plugin {
             )?,
         );
         store.set_epoch_deadline(1);
-        if let Some(fuel) = compiled.options.fuel {
-            store.set_fuel(fuel)?;
+        if compiled.options.fuel.is_some() {
+            store.set_fuel(u64::MAX)?;
         }
 
         let imports: Vec<Function> = compiled.options.functions.to_vec();
@@ -473,6 +473,9 @@ impl Plugin {
             &compiled.modules,
             compiled.options.wasi,
         )?;
+        if let Some(fuel) = compiled.options.fuel {
+            store.set_fuel(fuel)?;
+        }
         let timer_tx = Timer::tx();
         let mut plugin = Plugin {
             modules: compiled.modules.clone(),
@@ -526,8 +529,8 @@ impl Plugin {
             );
             self.store.set_epoch_deadline(1);
 
-            if let Some(fuel) = self.fuel {
-                self.store.set_fuel(fuel)?;
+            if self.fuel.is_some() {
+                self.store.set_fuel(u64::MAX)?;
             }
 
             let (instance_pre, linker, host_context) = relink(
@@ -537,6 +540,9 @@ impl Plugin {
                 &self.modules,
                 with_wasi,
             )?;
+            if let Some(fuel) = self.fuel {
+                self.store.set_fuel(fuel)?;
+            }
             self.linker = linker;
             self.instance_pre = instance_pre;
             self.host_context = host_context;
@@ -881,8 +887,8 @@ impl Plugin {
         let name = name.as_ref();
         let input = input.as_ref();
 
-        if let Some(fuel) = self.fuel {
-            self.store.set_fuel(fuel).map_err(|x| (x.into(), -1))?;
+        if self.fuel.is_some() {
+            self.store.set_fuel(u64::MAX).map_err(|x| (x.into(), -1))?;
         }
 
         catch_out_of_fuel!(
@@ -915,6 +921,10 @@ impl Plugin {
 
         self.set_input(input.as_ptr(), input.len(), r)
             .map_err(|x| (x, -1))?;
+
+        if let Some(fuel) = self.fuel {
+            self.store.set_fuel(fuel).map_err(|x| (x.into(), -1))?;
+        }
 
         let func = match self.get_func(lock, name) {
             Some(x) => x,
@@ -1019,6 +1029,7 @@ impl Plugin {
         match res {
             Ok(()) => Ok(rc),
             Err(e) => {
+                self.store_needs_reset = true;
                 if let Some(coredump) = e.downcast_ref::<wasmtime::WasmCoreDump>() {
                     if let Some(file) = self.debug_options.coredump.clone() {
                         debug!(
