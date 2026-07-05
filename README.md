@@ -6,7 +6,7 @@ official upstream Extism release supports it.
 
 Base upstream: `extism/extism` tag `v1.30.0`, commit `7038ad1`.
 
-Fork repository: `arthurianresolve/extism-with-wasmtime45`.
+Fork repository: `arthurianresolve/extism-with-wasmtime46`.
 
 ### What This Fork Covers
 
