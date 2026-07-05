@@ -66,6 +66,10 @@ Fork repository: `arthurianresolve/extism-with-wasmtime45`.
 - Adapted fuel-limit handling for Wasmtime 46 so wrapper setup work does not
   consume the caller's configured guest-execution fuel budget, and failed guest
   execution resets the store before the next call.
+- Checked the public wrapper API surface against the Wasmtime 46 migration:
+  existing Rust host APIs remain source-compatible, and the generated C header
+  keeps the existing `EXTISM_PTR` spelling without exporting cbindgen's generic
+  Rust `PTR` helper.
 - Updated the reusable GitHub composite action pins to current workflow
   equivalents: `actions/checkout@v6`,
   `actions-rust-lang/setup-rust-toolchain@v1`, `Swatinem/rust-cache@v2`, and
@@ -148,6 +152,16 @@ The cargo dependency refresh was validated with:
 - `cargo test -p extism check_alloc_with_load_and_store -- --nocapture`
 - `cargo test -p extism --benches --no-run`
 - `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo bench -p extism --no-run`
+
+The Wasmtime 46 upgrade and API-surface compatibility pass was validated with:
+
+- `cargo test -p extism`
+- `cargo check -p extism --no-default-features`
+- `cargo check --workspace`
+- `cargo check -p extism-convert --features protobuf`
+- `cargo test -p extism-convert --features protobuf`
+- `cargo check --manifest-path kernel/Cargo.toml --target wasm32-unknown-unknown`
+- `cargo fmt --all -- --check`
 
 Prefer returning to upstream Extism as soon as an official release supports the
 required Wasmtime security baseline.
