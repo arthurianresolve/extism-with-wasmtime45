@@ -1,8 +1,8 @@
 ## Fork Notice: Wasmtime 46 Runtime Baseline
 
 This repository is a temporary fork of `extism/extism` for Rust hosts that need
-Extism v1.30.0 API compatibility with a Wasmtime 46 security baseline before an
-official upstream Extism release supports it.
+`Extism` `v1.30.0` API compatibility with a `wasmtime` `46` security baseline
+before an official upstream Extism release supports it.
 
 Base upstream: `extism/extism` tag `v1.30.0`, commit `7038ad1`.
 
@@ -57,6 +57,9 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
 - `protobuf` remains on the 3.x line because `protobuf` 4.x is a new
   implementation with a changed API; the existing `extism-convert` wrapper uses
   the 3.x `Message::write_to_bytes` and `Message::parse_from_bytes` APIs.
+- Rechecked dependency freshness on the `protobuf-3.x` branch on 2026-06-08:
+  the direct Wasmtime, WASI, Wiggle, Prost, and Protobuf floors were current;
+  `libc` remains on the stable `0.2` line rather than the `1.0.0-alpha` line.
 - Rechecked dependency freshness on the `protobuf-3.x` branch on 2026-07-05
   and upgraded the Wasmtime dependency train from `45.0.3` to `46.0.1` while
   keeping `protobuf = "3.7.2"`.
@@ -143,12 +146,15 @@ The cargo dependency refresh was validated with:
 - `cargo clippy --workspace --all-targets -- -D warnings`
 - `cargo check -p extism-manifest --features json_schema --examples`
 - `cargo check -p extism-convert --features protobuf`
+- `cargo test -p extism-convert --features protobuf`
+- `cargo update`
 - `cargo test -p extism test_toml_manifest -- --nocapture`
 - `cargo test -p extism check_alloc_with_load_and_store -- --nocapture`
 - `cargo test -p extism --benches --no-run`
 - `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo bench -p extism --no-run`
 
-The Wasmtime 46 upgrade and protobuf 3.x compatibility pass was validated with:
+The Wasmtime 46 upgrade, API-surface compatibility pass, and protobuf 3.x pin
+were validated with:
 
 - `cargo check -p extism --no-default-features`
 - `cargo check --workspace`
