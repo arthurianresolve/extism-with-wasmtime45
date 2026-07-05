@@ -10,6 +10,7 @@ version.workspace = true
 
 [dependencies]
 wasmtime = { version = "46.0.1", default-features = false, features = [
+  'anyhow',
   'cache',
   'gc',
   'gc-drc',
@@ -19,7 +20,6 @@ wasmtime = { version = "46.0.1", default-features = false, features = [
   'parallel-compilation',
   'pooling-allocator',
   'demangle',
-  'anyhow',
 ] }
 wasi-common = "46.0.1"
 wiggle = "46.0.1"
