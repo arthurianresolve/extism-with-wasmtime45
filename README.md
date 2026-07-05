@@ -1,7 +1,7 @@
 ## Fork Notice: Wasmtime 46 Runtime Baseline
 
 This repository is a temporary fork of `extism/extism` for Rust hosts that need
-Extism v1.30.0 API compatibility with a Wasmtime 46 security baseline before an
+`Extism` `v1.30.0` API compatibility with a `wasmtime` `46` security baseline before an
 official upstream Extism release supports it.
 
 Base upstream: `extism/extism` tag `v1.30.0`, commit `7038ad1`.
