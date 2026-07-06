@@ -88,6 +88,9 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
   functions can pause, resume, extend, or reduce the active plugin timeout via
   `CurrentPlugin`, and C ABI host functions can use the matching
   `extism_current_plugin_timeout_*` helpers.
+- Added linked-module regression coverage for `extism/extism#819`, ensuring a
+  single `CompiledPlugin` can create multiple plugin instances that all retain
+  access to non-main modules imported by the main module.
 - Updated the reusable GitHub composite action pins to current workflow
   equivalents: `actions/checkout@v6`,
   `actions-rust-lang/setup-rust-toolchain@v1`, `Swatinem/rust-cache@v2`, and
@@ -223,6 +226,17 @@ The host-function timeout controls for `extism/extism#637` were validated with:
 
 - `cargo test -p extism test_host_function_can_pause_timeout`
 - `cargo test -p extism test_c_api_host_function_can_extend_timeout`
+- `cargo fmt --all -- --check`
+- `cargo check --workspace`
+- `cargo check -p extism --no-default-features`
+- `cargo clippy -p extism --all-targets -- -D warnings`
+- `cargo test -p extism`
+
+The compiled-plugin linked-module regression for `extism/extism#819` was
+validated with:
+
+- `cargo test -p extism test_linking`
+- `cargo test -p extism test_compiled_plugin_linking`
 - `cargo fmt --all -- --check`
 - `cargo check --workspace`
 - `cargo check -p extism --no-default-features`
