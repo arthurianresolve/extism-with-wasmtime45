@@ -115,14 +115,23 @@ impl CompiledPlugin {
                             Ok(Some(cache))
                         }
                     }
-                    None => {
-                        // load cache configuration from the system default path
-                        let cache = wasmtime::Cache::from_file(None)?;
-                        Ok(Some(cache))
-                    }
+                    None => Self::configure_default_cache(),
                 }
             }
         }
+    }
+
+    fn configure_default_cache() -> Result<Option<wasmtime::Cache>, Error> {
+        if Self::should_load_default_cache_config(cfg!(target_os = "android")) {
+            let cache = wasmtime::Cache::from_file(None)?;
+            Ok(Some(cache))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn should_load_default_cache_config(is_android: bool) -> bool {
+        !is_android
     }
 }
 
@@ -1249,6 +1258,17 @@ impl Plugin {
                     .expect("fuel support should be enabled to use fuel"),
             )
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CompiledPlugin;
+
+    #[test]
+    fn android_skips_implicit_default_cache_config() {
+        assert!(!CompiledPlugin::should_load_default_cache_config(true));
+        assert!(CompiledPlugin::should_load_default_cache_config(false));
     }
 }
 
