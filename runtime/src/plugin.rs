@@ -1008,20 +1008,21 @@ impl Plugin {
         }
 
         // Start timer
+        let timeout = self
+            .current_plugin()
+            .manifest
+            .timeout_ms
+            .map(std::time::Duration::from_millis);
         self.timer_tx
             .send(TimerAction::Start {
                 id: self.id,
                 engine: self.store.engine().clone(),
-                duration: self
-                    .current_plugin()
-                    .manifest
-                    .timeout_ms
-                    .map(std::time::Duration::from_millis),
+                duration: timeout,
             })
             .expect("Timer should start");
         self.store.epoch_deadline_trap();
         self.store.set_epoch_deadline(1);
-        self.current_plugin_mut().start_time = std::time::Instant::now();
+        self.current_plugin_mut().start_timeout(timeout);
 
         // Call the function
         let mut results = vec![wasmtime::Val::I32(0); n_results];

@@ -144,6 +144,30 @@ ExtismSize extism_current_plugin_memory_length(ExtismCurrentPlugin *plugin, Exti
 void extism_current_plugin_memory_free(ExtismCurrentPlugin *plugin, ExtismMemoryHandle ptr);
 
 /**
+ * Add milliseconds to a plugin's active timeout.
+ * NOTE: this should only be called from host functions.
+ */
+bool extism_current_plugin_timeout_add_ms(ExtismCurrentPlugin *plugin, uint64_t ms);
+
+/**
+ * Subtract milliseconds from a plugin's active timeout.
+ * NOTE: this should only be called from host functions.
+ */
+bool extism_current_plugin_timeout_sub_ms(ExtismCurrentPlugin *plugin, uint64_t ms);
+
+/**
+ * Pause a plugin's active timeout.
+ * NOTE: this should only be called from host functions.
+ */
+bool extism_current_plugin_timeout_pause(ExtismCurrentPlugin *plugin);
+
+/**
+ * Resume a plugin timeout previously paused with `extism_current_plugin_timeout_pause`.
+ * NOTE: this should only be called from host functions.
+ */
+bool extism_current_plugin_timeout_resume(ExtismCurrentPlugin *plugin);
+
+/**
  * Create a new host function
  *
  * Arguments

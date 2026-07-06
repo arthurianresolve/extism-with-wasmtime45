@@ -19,6 +19,8 @@ pub struct CurrentPlugin {
     pub(crate) memory_limiter: Option<MemoryLimiter>,
     pub(crate) id: uuid::Uuid,
     pub(crate) start_time: std::time::Instant,
+    timeout_deadline: Option<std::time::Instant>,
+    paused_timeout_remaining: Option<std::time::Duration>,
 }
 
 unsafe impl Send for CurrentPlugin {}
@@ -402,6 +404,8 @@ impl CurrentPlugin {
             memory_limiter,
             id,
             start_time: std::time::Instant::now(),
+            timeout_deadline: None,
+            paused_timeout_remaining: None,
             http_headers: if allow_http_response_headers {
                 Some(BTreeMap::new())
             } else {
@@ -524,13 +528,123 @@ impl CurrentPlugin {
     /// Returns the remaining time before a plugin will timeout, or
     /// `None` if no timeout is configured in the manifest
     pub fn time_remaining(&self) -> Option<std::time::Duration> {
-        if let Some(x) = &self.manifest.timeout_ms {
-            let elapsed = &self.start_time.elapsed().as_millis();
-            let ms_left = x.saturating_sub(*elapsed as u64);
-            return Some(std::time::Duration::from_millis(ms_left));
+        self.manifest.timeout_ms?;
+
+        if let Some(remaining) = self.paused_timeout_remaining {
+            return Some(remaining);
         }
 
-        None
+        if let Some(deadline) = self.timeout_deadline {
+            return Some(deadline.saturating_duration_since(std::time::Instant::now()));
+        }
+
+        self.manifest.timeout_ms.map(|x| {
+            let elapsed = self.start_time.elapsed().as_millis();
+            let ms_left = x.saturating_sub(elapsed as u64);
+            std::time::Duration::from_millis(ms_left)
+        })
+    }
+
+    pub(crate) fn start_timeout(&mut self, duration: Option<std::time::Duration>) {
+        self.start_time = std::time::Instant::now();
+        self.timeout_deadline = duration.and_then(|duration| {
+            self.start_time
+                .checked_add(duration)
+                .or(Some(self.start_time))
+        });
+        self.paused_timeout_remaining = None;
+    }
+
+    /// Add time to the active plugin timeout.
+    ///
+    /// Returns `Ok(false)` if the plugin manifest has no timeout configured.
+    /// This is primarily useful from host functions that perform blocking work
+    /// which cannot be interrupted by Wasmtime's epoch deadline.
+    pub fn extend_timeout(&mut self, duration: std::time::Duration) -> Result<bool, Error> {
+        self.adjust_timeout(TimeoutAdjustment::Extend(duration))
+    }
+
+    /// Subtract time from the active plugin timeout.
+    ///
+    /// Returns `Ok(false)` if the plugin manifest has no timeout configured.
+    pub fn reduce_timeout(&mut self, duration: std::time::Duration) -> Result<bool, Error> {
+        self.adjust_timeout(TimeoutAdjustment::Reduce(duration))
+    }
+
+    /// Pause the active plugin timeout until `resume_timeout` is called.
+    ///
+    /// Returns `Ok(false)` if the plugin manifest has no timeout configured.
+    pub fn pause_timeout(&mut self) -> Result<bool, Error> {
+        if self.manifest.timeout_ms.is_none() {
+            return Ok(false);
+        }
+
+        if self.paused_timeout_remaining.is_some() {
+            return Ok(true);
+        }
+
+        self.paused_timeout_remaining = self.time_remaining();
+        self.timeout_deadline = None;
+        Timer::tx().send(TimerAction::Pause { id: self.id })?;
+        Ok(true)
+    }
+
+    /// Resume a timeout that was paused with `pause_timeout`.
+    ///
+    /// Returns `Ok(false)` if the plugin manifest has no timeout configured.
+    pub fn resume_timeout(&mut self) -> Result<bool, Error> {
+        if self.manifest.timeout_ms.is_none() {
+            return Ok(false);
+        }
+
+        let Some(remaining) = self.paused_timeout_remaining.take() else {
+            return Ok(true);
+        };
+
+        let now = std::time::Instant::now();
+        self.timeout_deadline = now.checked_add(remaining).or(Some(now));
+        Timer::tx().send(TimerAction::Resume { id: self.id })?;
+        Ok(true)
+    }
+
+    fn adjust_timeout(&mut self, adjustment: TimeoutAdjustment) -> Result<bool, Error> {
+        if self.manifest.timeout_ms.is_none() {
+            return Ok(false);
+        }
+
+        Timer::tx().send(TimerAction::Adjust {
+            id: self.id,
+            adjustment,
+        })?;
+
+        if let Some(remaining) = self.paused_timeout_remaining.as_mut() {
+            match adjustment {
+                TimeoutAdjustment::Extend(duration) => {
+                    if let Some(next) = remaining.checked_add(duration) {
+                        *remaining = next;
+                    }
+                }
+                TimeoutAdjustment::Reduce(duration) => {
+                    *remaining = remaining.checked_sub(duration).unwrap_or_default();
+                }
+            }
+        } else if let Some(deadline) = self.timeout_deadline.as_mut() {
+            match adjustment {
+                TimeoutAdjustment::Extend(duration) => {
+                    if let Some(next) = deadline.checked_add(duration) {
+                        *deadline = next;
+                    }
+                }
+                TimeoutAdjustment::Reduce(duration) => {
+                    let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+                    let remaining = remaining.checked_sub(duration).unwrap_or_default();
+                    let now = std::time::Instant::now();
+                    *deadline = now.checked_add(remaining).unwrap_or(now);
+                }
+            }
+        }
+
+        Ok(true)
     }
 }
 

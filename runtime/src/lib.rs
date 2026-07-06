@@ -47,7 +47,7 @@ pub use plugin_builder::{DebugOptions, PluginBuilder};
 pub use pool::{Pool, PoolBuilder, PoolPlugin};
 
 pub(crate) use internal::{Internal, Wasi};
-pub(crate) use timer::{Timer, TimerAction};
+pub(crate) use timer::{TimeoutAdjustment, Timer, TimerAction};
 pub(crate) use tracing::{debug, error, trace, warn};
 
 #[cfg(test)]

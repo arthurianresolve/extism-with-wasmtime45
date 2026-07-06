@@ -84,6 +84,10 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
   any active timer entry, clears the host-context payload, and releases cached
   runtime/instance state before the remaining Wasmtime-owned fields are
   destroyed.
+- Added host-function timeout controls for `extism/extism#637`: Rust host
+  functions can pause, resume, extend, or reduce the active plugin timeout via
+  `CurrentPlugin`, and C ABI host functions can use the matching
+  `extism_current_plugin_timeout_*` helpers.
 - Updated the reusable GitHub composite action pins to current workflow
   equivalents: `actions/checkout@v6`,
   `actions-rust-lang/setup-rust-toolchain@v1`, `Swatinem/rust-cache@v2`, and
@@ -209,6 +213,16 @@ The plugin teardown hardening for `extism/extism#890` was validated with:
 
 - `cargo test -p extism test_plugin_teardown_clears_cached_instance`
 - `cargo test -p extism test_c_api_plugin_free_repeated_creation`
+- `cargo fmt --all -- --check`
+- `cargo check --workspace`
+- `cargo check -p extism --no-default-features`
+- `cargo clippy -p extism --all-targets -- -D warnings`
+- `cargo test -p extism`
+
+The host-function timeout controls for `extism/extism#637` were validated with:
+
+- `cargo test -p extism test_host_function_can_pause_timeout`
+- `cargo test -p extism test_c_api_host_function_can_extend_timeout`
 - `cargo fmt --all -- --check`
 - `cargo check --workspace`
 - `cargo check -p extism --no-default-features`
