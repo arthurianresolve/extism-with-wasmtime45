@@ -369,6 +369,65 @@ fn test_c_api_function_names() {
 }
 
 #[test]
+fn test_plugin_teardown_clears_cached_instance() {
+    let mut plugin = Plugin::new(WASM_NO_FUNCTIONS, [], true).unwrap();
+
+    {
+        let output: &[u8] = plugin.call("count_vowels", "abc123").unwrap();
+        assert!(!output.is_empty());
+    }
+
+    assert!(plugin.instance.try_lock().unwrap().is_some());
+    plugin.teardown_runtime_state();
+    assert!(plugin.instance.try_lock().unwrap().is_none());
+}
+
+#[test]
+fn test_c_api_plugin_free_repeated_creation() {
+    let name = std::ffi::CString::new("count_vowels").unwrap();
+    let input = b"abc123";
+
+    for _ in 0..64 {
+        let mut err = std::ptr::null_mut();
+        let plugin = unsafe {
+            crate::sdk::extism_plugin_new(
+                WASM_NO_FUNCTIONS.as_ptr(),
+                WASM_NO_FUNCTIONS.len() as crate::sdk::Size,
+                std::ptr::null_mut(),
+                0,
+                true,
+                &mut err,
+            )
+        };
+
+        if plugin.is_null() {
+            let msg = if err.is_null() {
+                "unknown plugin creation error".to_string()
+            } else {
+                let msg = unsafe { std::ffi::CStr::from_ptr(err) }
+                    .to_string_lossy()
+                    .into_owned();
+                unsafe { crate::sdk::extism_plugin_new_error_free(err) };
+                msg
+            };
+            panic!("{msg}");
+        }
+
+        assert!(err.is_null());
+        let rc = unsafe {
+            crate::sdk::extism_plugin_call(
+                plugin,
+                name.as_ptr(),
+                input.as_ptr(),
+                input.len() as crate::sdk::Size,
+            )
+        };
+        assert_eq!(rc, 0);
+        unsafe { crate::sdk::extism_plugin_free(plugin) };
+    }
+}
+
+#[test]
 fn test_multiple_instantiations() {
     let f = Function::new(
         "hello_world",

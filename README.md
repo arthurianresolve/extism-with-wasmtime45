@@ -80,6 +80,10 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
   `Plugin::function_names()`, `Pool::function_names()`, and the C ABI
   `extism_plugin_function_names`, which returns a JSON array of callable
   plugin function names.
+- Hardened plugin teardown for `extism/extism#890`: `Plugin` drop now stops
+  any active timer entry, clears the host-context payload, and releases cached
+  runtime/instance state before the remaining Wasmtime-owned fields are
+  destroyed.
 - Updated the reusable GitHub composite action pins to current workflow
   equivalents: `actions/checkout@v6`,
   `actions-rust-lang/setup-rust-toolchain@v1`, `Swatinem/rust-cache@v2`, and
@@ -119,8 +123,9 @@ This fork is intentionally narrow. It does **not** cover:
   RubyGems, Packagist packages, CPAN packages, opam packages, or Hackage
   packages.
 - The separate Go SDK or JavaScript SDK repositories.
-- Python/C-ABI lifecycle reports such as `extism_plugin_free` memory leak
-  reports unless they are proven to affect the Rust SDK path directly.
+- Downstream Python SDK wrapper ownership fixes. The Rust runtime/C ABI
+  `extism_plugin_free` teardown path has been hardened for `extism/extism#890`,
+  but Python SDK package code is outside this fork.
 - WASI Preview 2, the Component Model, or WIT-based plugin interfaces.
 - WASI threads support.
 - Async cancellation support for guest code blocked in uninterrupted sleeps or
@@ -198,6 +203,16 @@ The runtime export discovery API for `extism/extism#868` was validated with:
 - `cargo check -p extism --no-default-features`
 - `cargo clippy -p extism --all-targets -- -D warnings`
 - `cargo fmt --all -- --check`
+
+The plugin teardown hardening for `extism/extism#890` was validated with:
+
+- `cargo test -p extism test_plugin_teardown_clears_cached_instance`
+- `cargo test -p extism test_c_api_plugin_free_repeated_creation`
+- `cargo fmt --all -- --check`
+- `cargo check --workspace`
+- `cargo check -p extism --no-default-features`
+- `cargo clippy -p extism --all-targets -- -D warnings`
+- `cargo test -p extism`
 
 Prefer returning to upstream Extism as soon as an official release supports the
 required Wasmtime security baseline.

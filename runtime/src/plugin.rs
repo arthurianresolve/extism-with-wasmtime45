@@ -211,6 +211,51 @@ impl Internal for Plugin {
     }
 }
 
+impl Plugin {
+    fn clear_host_context(&mut self) {
+        if let Ok(Some(inner)) = self.host_context.data_mut(&mut self.store) {
+            if let Some(inner) = inner.downcast_mut::<Box<dyn Any + Send + Sync>>() {
+                let x: Box<dyn Any + Send + Sync> = Box::new(());
+                *inner = x;
+            }
+        }
+    }
+
+    pub(crate) fn teardown_runtime_state(&mut self) {
+        let _ = self.timer_tx.send(TimerAction::Stop { id: self.id });
+        self.store
+            .epoch_deadline_callback(|_| Ok(UpdateDeadline::Continue(1)));
+        self.clear_host_context();
+        self.runtime = None;
+        self.output = Output::default();
+        self.error_msg = None;
+        self.store_needs_reset = true;
+        self.current_plugin_mut().vars.clear();
+
+        match self.instance.try_lock() {
+            Ok(mut instance) => {
+                *instance = None;
+            }
+            Err(TryLockError::Poisoned(e)) => {
+                let mut instance = e.into_inner();
+                *instance = None;
+            }
+            Err(TryLockError::WouldBlock) => {
+                warn!(
+                    plugin = self.id.to_string(),
+                    "unable to clear plugin instance during teardown because it is still in use"
+                );
+            }
+        }
+    }
+}
+
+impl Drop for Plugin {
+    fn drop(&mut self) {
+        self.teardown_runtime_state();
+    }
+}
+
 pub(crate) fn profiling_strategy() -> ProfilingStrategy {
     match std::env::var("EXTISM_PROFILE").as_deref() {
         Ok("perf") => ProfilingStrategy::PerfMap,
@@ -983,12 +1028,7 @@ impl Plugin {
         let mut res = func.call(self.store_mut(), &[], results.as_mut_slice());
 
         // Reset host context
-        if let Ok(Some(inner)) = self.host_context.data_mut(&mut self.store) {
-            if let Some(inner) = inner.downcast_mut::<Box<dyn std::any::Any + Send + Sync>>() {
-                let x: Box<dyn Any + Send + Sync> = Box::new(());
-                *inner = x;
-            }
-        }
+        self.clear_host_context();
 
         // Stop timer
         self.store
