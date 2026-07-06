@@ -239,6 +239,74 @@ fn test_timeout() {
     assert!(err == "timeout");
 }
 
+fn hello_world_pause_timeout(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData<()>,
+) -> Result<(), Error> {
+    assert!(plugin.pause_timeout()?);
+    let before = plugin.time_remaining().unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(150));
+    assert_eq!(plugin.time_remaining().unwrap(), before);
+    assert!(plugin.resume_timeout()?);
+    outputs[0] = inputs[0];
+    Ok(())
+}
+
+#[test]
+fn test_host_function_can_pause_timeout() {
+    let f = Function::new(
+        "hello_world",
+        [PTR],
+        [PTR],
+        UserData::default(),
+        hello_world_pause_timeout,
+    );
+
+    let manifest = Manifest::new([extism_manifest::Wasm::data(WASM)])
+        .with_timeout(std::time::Duration::from_millis(50));
+    let mut plugin = Plugin::new(manifest, [f], true).unwrap();
+
+    let start = std::time::Instant::now();
+    let output: Result<&[u8], Error> = plugin.call("count_vowels", "testing");
+
+    assert!(output.is_ok(), "{output:?}");
+    assert!(start.elapsed() >= std::time::Duration::from_millis(150));
+}
+
+fn hello_world_extend_timeout_via_c_api(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData<()>,
+) -> Result<(), Error> {
+    assert!(unsafe {
+        crate::sdk::extism_current_plugin_timeout_add_ms(plugin as *mut CurrentPlugin, 200)
+    });
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    outputs[0] = inputs[0];
+    Ok(())
+}
+
+#[test]
+fn test_c_api_host_function_can_extend_timeout() {
+    let f = Function::new(
+        "hello_world",
+        [PTR],
+        [PTR],
+        UserData::default(),
+        hello_world_extend_timeout_via_c_api,
+    );
+
+    let manifest = Manifest::new([extism_manifest::Wasm::data(WASM)])
+        .with_timeout(std::time::Duration::from_millis(50));
+    let mut plugin = Plugin::new(manifest, [f], true).unwrap();
+
+    let output: Result<&[u8], Error> = plugin.call("count_vowels", "testing");
+    assert!(output.is_ok(), "{output:?}");
+}
+
 #[test]
 fn test_fuel() {
     let manifest = Manifest::new([extism_manifest::Wasm::data(WASM_LOOP)]);

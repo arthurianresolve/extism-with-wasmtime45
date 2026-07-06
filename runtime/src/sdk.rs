@@ -170,6 +170,64 @@ pub unsafe extern "C" fn extism_current_plugin_memory_free(
     }
 }
 
+/// Add milliseconds to a plugin's active timeout.
+/// NOTE: this should only be called from host functions.
+#[no_mangle]
+pub unsafe extern "C" fn extism_current_plugin_timeout_add_ms(
+    plugin: *mut CurrentPlugin,
+    ms: u64,
+) -> bool {
+    if plugin.is_null() {
+        return false;
+    }
+
+    let plugin = &mut *plugin;
+    plugin
+        .extend_timeout(std::time::Duration::from_millis(ms))
+        .unwrap_or(false)
+}
+
+/// Subtract milliseconds from a plugin's active timeout.
+/// NOTE: this should only be called from host functions.
+#[no_mangle]
+pub unsafe extern "C" fn extism_current_plugin_timeout_sub_ms(
+    plugin: *mut CurrentPlugin,
+    ms: u64,
+) -> bool {
+    if plugin.is_null() {
+        return false;
+    }
+
+    let plugin = &mut *plugin;
+    plugin
+        .reduce_timeout(std::time::Duration::from_millis(ms))
+        .unwrap_or(false)
+}
+
+/// Pause a plugin's active timeout.
+/// NOTE: this should only be called from host functions.
+#[no_mangle]
+pub unsafe extern "C" fn extism_current_plugin_timeout_pause(plugin: *mut CurrentPlugin) -> bool {
+    if plugin.is_null() {
+        return false;
+    }
+
+    let plugin = &mut *plugin;
+    plugin.pause_timeout().unwrap_or(false)
+}
+
+/// Resume a plugin timeout previously paused with `extism_current_plugin_timeout_pause`.
+/// NOTE: this should only be called from host functions.
+#[no_mangle]
+pub unsafe extern "C" fn extism_current_plugin_timeout_resume(plugin: *mut CurrentPlugin) -> bool {
+    if plugin.is_null() {
+        return false;
+    }
+
+    let plugin = &mut *plugin;
+    plugin.resume_timeout().unwrap_or(false)
+}
+
 /// Create a new host function
 ///
 /// Arguments
