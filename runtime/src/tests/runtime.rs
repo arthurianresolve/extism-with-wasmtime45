@@ -888,7 +888,37 @@ fn test_no_vars() {
 
 #[test]
 fn test_linking() {
-    let manifest = Manifest::new([
+    let mut plugin = linked_modules_plugin_builder().build().unwrap();
+
+    for _ in 0..5 {
+        assert_eq!(plugin.call::<&str, i64>("run", "Hello, world!").unwrap(), 1);
+    }
+}
+
+#[test]
+fn test_compiled_plugin_linking() {
+    let compiled = linked_modules_plugin_builder().compile().unwrap();
+
+    for _ in 0..3 {
+        let mut plugin = Plugin::new_from_compiled(&compiled).unwrap();
+
+        for _ in 0..3 {
+            assert_eq!(plugin.call::<&str, i64>("run", "Hello, world!").unwrap(), 1);
+        }
+    }
+}
+
+fn linked_modules_plugin_builder() -> PluginBuilder<'static> {
+    PluginBuilder::new(linked_modules_manifest())
+        .with_wasi(true)
+        .with_function("hello", [], [], UserData::new(()), |_, _, _, _| {
+            eprintln!("hello!");
+            Ok(())
+        })
+}
+
+fn linked_modules_manifest() -> Manifest {
+    Manifest::new([
         Wasm::Data {
             data: br#"
                 (module
@@ -939,19 +969,7 @@ fn test_linking() {
                 hash: None,
             },
         },
-    ]);
-    let mut plugin = PluginBuilder::new(manifest)
-        .with_wasi(true)
-        .with_function("hello", [], [], UserData::new(()), |_, _, _, _| {
-            eprintln!("hello!");
-            Ok(())
-        })
-        .build()
-        .unwrap();
-
-    for _ in 0..5 {
-        assert_eq!(plugin.call::<&str, i64>("run", "Hello, world!").unwrap(), 1);
-    }
+    ])
 }
 
 #[test]
