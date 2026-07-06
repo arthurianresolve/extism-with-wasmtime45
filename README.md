@@ -76,6 +76,10 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
   when no cache config is supplied, avoiding `extism/extism#851` plugin
   construction failures while preserving explicit `with_cache_config`,
   `EXTISM_CACHE_CONFIG`, and `with_cache_disabled` behavior.
+- Added runtime export discovery for `extism/extism#868` via
+  `Plugin::function_names()`, `Pool::function_names()`, and the C ABI
+  `extism_plugin_function_names`, which returns a JSON array of callable
+  plugin function names.
 - Updated the reusable GitHub composite action pins to current workflow
   equivalents: `actions/checkout@v6`,
   `actions-rust-lang/setup-rust-toolchain@v1`, `Swatinem/rust-cache@v2`, and
@@ -181,6 +185,16 @@ The Android default cache config fallback fix for `extism/extism#851` was
 validated with:
 
 - `cargo test -p extism android_skips_implicit_default_cache_config`
+- `cargo check -p extism --no-default-features`
+- `cargo clippy -p extism --all-targets -- -D warnings`
+- `cargo fmt --all -- --check`
+
+The runtime export discovery API for `extism/extism#868` was validated with:
+
+- `cargo test -p extism test_function_names`
+- `cargo test -p extism test_c_api_function_names`
+- `cargo test -p extism pool::test_exists`
+- `cargo check --workspace`
 - `cargo check -p extism --no-default-features`
 - `cargo clippy -p extism --all-targets -- -D warnings`
 - `cargo fmt --all -- --check`

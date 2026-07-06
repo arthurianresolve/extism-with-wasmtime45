@@ -273,6 +273,17 @@ bool extism_plugin_config(ExtismPlugin *plugin, const uint8_t *json, ExtismSize 
 bool extism_plugin_function_exists(ExtismPlugin *plugin, const char *func_name);
 
 /**
+ * Returns a JSON array containing the names of all callable plugin functions.
+ * The returned string should be freed with `extism_plugin_function_names_free`.
+ */
+char *extism_plugin_function_names(ExtismPlugin *plugin);
+
+/**
+ * Free the string returned by `extism_plugin_function_names`.
+ */
+void extism_plugin_function_names_free(char *names);
+
+/**
  * Call a function
  *
  * `func_name`: is the function to call

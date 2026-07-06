@@ -196,6 +196,21 @@ impl Pool {
             }
         }
     }
+
+    /// Returns the names of all callable plugin functions.
+    pub fn function_names(&self, timeout: std::time::Duration) -> Result<Vec<String>, Error> {
+        let plugin = self.get(timeout)?;
+        if let Some(p) = plugin.as_ref() {
+            let names = p.plugin.as_ref().unwrap().function_names();
+            let mut write = self.existing_functions.write().unwrap();
+            for name in &names {
+                write.insert(name.clone(), true);
+            }
+            Ok(names)
+        } else {
+            Ok(Vec::new())
+        }
+    }
 }
 
 /// `PoolPlugin` wraps a plugin checked out from a pool. When dropped, the plugin is automatically returned

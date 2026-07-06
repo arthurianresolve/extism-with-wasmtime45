@@ -71,6 +71,27 @@ bool extism_plugin_function_exists(ExtismPlugin *plugin,
 
 ---
 
+### `extism_plugin_function_names`
+
+Returns a JSON array containing the names of all callable plugin functions.
+The returned string should be freed with `extism_plugin_function_names_free`.
+
+```c
+char *extism_plugin_function_names(ExtismPlugin *plugin);
+```
+
+---
+
+### `extism_plugin_function_names_free`
+
+Frees the string returned by `extism_plugin_function_names`.
+
+```c
+void extism_plugin_function_names_free(char *names);
+```
+
+---
+
 ### `extism_plugin_call`
 
 Call a function.

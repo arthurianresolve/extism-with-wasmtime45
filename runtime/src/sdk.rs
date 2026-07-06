@@ -743,6 +743,41 @@ pub unsafe extern "C" fn extism_plugin_function_exists(
     plugin.function_exists(name)
 }
 
+/// Returns a JSON array containing the names of all callable plugin functions.
+/// The returned string should be freed with `extism_plugin_function_names_free`.
+#[no_mangle]
+pub unsafe extern "C" fn extism_plugin_function_names(plugin: *mut Plugin) -> *mut c_char {
+    if plugin.is_null() {
+        return std::ptr::null_mut();
+    }
+    let plugin = &mut *plugin;
+    trace!(
+        plugin = plugin.id.to_string(),
+        "extism_plugin_function_names"
+    );
+
+    let _ = plugin.clear_error();
+    let names = plugin.function_names();
+    let json = match serde_json::to_string(&names) {
+        Ok(x) => x,
+        Err(e) => {
+            plugin.error_msg = Some(make_error_msg(e.to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    std::ffi::CString::new(json).unwrap().into_raw()
+}
+
+/// Free the string returned by `extism_plugin_function_names`.
+#[no_mangle]
+pub unsafe extern "C" fn extism_plugin_function_names_free(names: *mut c_char) {
+    if names.is_null() {
+        return;
+    }
+    drop(std::ffi::CString::from_raw(names));
+}
+
 /// Call a function
 ///
 /// `func_name`: is the function to call
