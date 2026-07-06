@@ -614,19 +614,32 @@ impl Plugin {
     pub fn function_exists(&self, function: impl AsRef<str>) -> bool {
         self.modules[MAIN_KEY]
             .get_export(function.as_ref())
-            .map(|x| {
-                if let Some(f) = x.func() {
-                    let (params, mut results) = (f.params(), f.results());
-                    match (params.len(), results.len()) {
-                        (0, 1) => matches!(results.next(), Some(wasmtime::ValType::I32)),
-                        (0, 0) => true,
-                        _ => false,
-                    }
-                } else {
-                    false
-                }
-            })
+            .map(|x| Self::is_callable_export(&x))
             .unwrap_or(false)
+    }
+
+    /// Returns the names of all callable plugin functions.
+    pub fn function_names(&self) -> Vec<String> {
+        let mut names = self.modules[MAIN_KEY]
+            .exports()
+            .filter(|x| Self::is_callable_export(&x.ty()))
+            .map(|x| x.name().to_string())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    fn is_callable_export(export: &wasmtime::ExternType) -> bool {
+        if let Some(f) = export.func() {
+            let (params, mut results) = (f.params(), f.results());
+            match (params.len(), results.len()) {
+                (0, 1) => matches!(results.next(), Some(wasmtime::ValType::I32)),
+                (0, 0) => true,
+                _ => false,
+            }
+        } else {
+            false
+        }
     }
 
     // Store input in memory and re-initialize `Internal` pointer

@@ -328,6 +328,47 @@ fn test_typed_plugin_macro() {
 }
 
 #[test]
+fn test_function_names() {
+    let data = br#"
+(module
+    (func (export "callable_void"))
+    (func (export "callable_result") (result i32)
+        (i32.const 0)
+    )
+    (func (export "not_extism_abi") (param i64) (result i64)
+        (local.get 0)
+    )
+    (memory (export "memory") 1)
+)
+    "#;
+    let plugin = Plugin::new(Manifest::new([Wasm::data(data)]), [], true).unwrap();
+
+    assert_eq!(
+        plugin.function_names(),
+        vec!["callable_result".to_string(), "callable_void".to_string()]
+    );
+    assert!(plugin.function_exists("callable_result"));
+    assert!(plugin.function_exists("callable_void"));
+    assert!(!plugin.function_exists("not_extism_abi"));
+    assert!(!plugin.function_exists("memory"));
+}
+
+#[test]
+fn test_c_api_function_names() {
+    let plugin = Plugin::new(WASM_NO_FUNCTIONS, [], true).unwrap();
+    let plugin = Box::into_raw(Box::new(plugin));
+
+    unsafe {
+        let names = crate::sdk::extism_plugin_function_names(plugin);
+        assert!(!names.is_null());
+        let names_json = std::ffi::CStr::from_ptr(names).to_str().unwrap();
+        assert_eq!(names_json, r#"["count_vowels"]"#);
+        crate::sdk::extism_plugin_function_names_free(names);
+        crate::sdk::extism_plugin_free(plugin);
+    }
+}
+
+#[test]
 fn test_multiple_instantiations() {
     let f = Function::new(
         "hello_world",

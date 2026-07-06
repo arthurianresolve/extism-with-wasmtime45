@@ -57,6 +57,10 @@ fn test_threads() {
 fn test_exists() -> Result<(), Error> {
     let pool = init(1);
     let timeout = Duration::from_secs(1);
+    assert_eq!(
+        pool.function_names(timeout)?,
+        vec!["count_vowels".to_string()]
+    );
     assert!(pool.function_exists("count_vowels", timeout)?);
     assert!(pool.function_exists("count_vowels", timeout)?);
     assert!(!pool.function_exists("not_existing", timeout)?);
