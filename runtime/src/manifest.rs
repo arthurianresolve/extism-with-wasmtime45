@@ -81,7 +81,7 @@ fn to_module(engine: &Engine, wasm: &extism_manifest::Wasm) -> Result<(String, M
 
             #[cfg(not(feature = "register-http"))]
             {
-                return anyhow::bail!("HTTP registration is disabled");
+                anyhow::bail!("HTTP registration is disabled")
             }
 
             #[cfg(feature = "register-http")]
