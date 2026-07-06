@@ -91,6 +91,9 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
 - Added linked-module regression coverage for `extism/extism#819`, ensuring a
   single `CompiledPlugin` can create multiple plugin instances that all retain
   access to non-main modules imported by the main module.
+- Added compiled-plugin concurrency regression coverage for `extism/extism#791`,
+  ensuring a single shared `CompiledPlugin` can create independent plugin
+  instances across threads while preserving per-instance execution state.
 - Updated the reusable GitHub composite action pins to current workflow
   equivalents: `actions/checkout@v6`,
   `actions-rust-lang/setup-rust-toolchain@v1`, `Swatinem/rust-cache@v2`, and
@@ -237,6 +240,18 @@ validated with:
 
 - `cargo test -p extism test_linking`
 - `cargo test -p extism test_compiled_plugin_linking`
+- `cargo fmt --all -- --check`
+- `cargo check --workspace`
+- `cargo check -p extism --no-default-features`
+- `cargo clippy -p extism --all-targets -- -D warnings`
+- `cargo test -p extism`
+
+The compiled-plugin concurrency regression for `extism/extism#791` was
+validated with:
+
+- `cargo test -p extism test_compiled_plugin_concurrent_instances`
+- `cargo test -p extism test_plugin_threads`
+- `cargo test -p extism pool::test_threads`
 - `cargo fmt --all -- --check`
 - `cargo check --workspace`
 - `cargo check -p extism --no-default-features`

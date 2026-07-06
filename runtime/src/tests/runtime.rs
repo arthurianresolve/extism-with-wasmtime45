@@ -1,7 +1,12 @@
-use extism_manifest::{HttpRequest, MemoryOptions};
+use extism_manifest::MemoryOptions;
 
 use crate::*;
-use std::{collections::HashMap, io::Write, time::Instant};
+use std::{io::Write, time::Instant};
+
+#[cfg(feature = "http")]
+use extism_manifest::HttpRequest;
+#[cfg(feature = "http")]
+use std::{collections::HashMap, io::Read};
 
 const WASM: &[u8] = include_bytes!("../../../wasm/code-functions.wasm");
 const WASM_NO_FUNCTIONS: &[u8] = include_bytes!("../../../wasm/code.wasm");
@@ -9,6 +14,7 @@ const WASM_LOOP: &[u8] = include_bytes!("../../../wasm/loop.wasm");
 const WASM_GLOBALS: &[u8] = include_bytes!("../../../wasm/globals.wasm");
 const WASM_REFLECT: &[u8] = include_bytes!("../../../wasm/reflect.wasm");
 const WASM_HTTP: &[u8] = include_bytes!("../../../wasm/http.wasm");
+#[cfg(feature = "http")]
 const WASM_HTTP_HEADERS: &[u8] = include_bytes!("../../../wasm/http_headers.wasm");
 const WASM_FS: &[u8] = include_bytes!("../../../wasm/read_write.wasm");
 
@@ -39,6 +45,57 @@ fn hello_world_panic(
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
 pub struct Count {
     count: usize,
+}
+
+#[cfg(feature = "http")]
+fn local_post_echo_server(request_count: usize) -> (String, std::thread::JoinHandle<()>) {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let handle = std::thread::spawn(move || {
+        for _ in 0..request_count {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0u8; 1024];
+            let header_end = loop {
+                let n = stream.read(&mut chunk).unwrap();
+                assert!(n > 0, "client closed connection before sending headers");
+                request.extend_from_slice(&chunk[..n]);
+                if let Some(pos) = request.windows(4).position(|x| x == b"\r\n\r\n") {
+                    break pos;
+                }
+            };
+
+            let headers = String::from_utf8_lossy(&request[..header_end]);
+            let content_length = headers
+                .lines()
+                .find_map(|line| {
+                    line.split_once(':').and_then(|(name, value)| {
+                        name.eq_ignore_ascii_case("content-length")
+                            .then(|| value.trim().parse::<usize>().unwrap())
+                    })
+                })
+                .unwrap_or(0);
+
+            let body_start = header_end + 4;
+            while request.len() < body_start + content_length {
+                let n = stream.read(&mut chunk).unwrap();
+                assert!(n > 0, "client closed connection before sending body");
+                request.extend_from_slice(&chunk[..n]);
+            }
+
+            let body = String::from_utf8_lossy(&request[body_start..body_start + content_length]);
+            let response_body = serde_json::json!({ "data": body.as_ref() }).to_string();
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                response_body.len(),
+                response_body
+            )
+            .unwrap();
+        }
+    });
+
+    (format!("http://{addr}/post"), handle)
 }
 
 #[test]
@@ -181,6 +238,34 @@ fn test_plugin_threads() {
         });
         threads.push(a);
     }
+    for thread in threads {
+        thread.join().unwrap();
+    }
+}
+
+#[test]
+fn test_compiled_plugin_concurrent_instances() {
+    let compiled = std::sync::Arc::new(
+        PluginBuilder::new(WASM_NO_FUNCTIONS)
+            .with_wasi(true)
+            .compile()
+            .unwrap(),
+    );
+
+    let mut threads = vec![];
+    for _ in 0..8 {
+        let compiled = compiled.clone();
+        threads.push(std::thread::spawn(move || {
+            for _ in 0..8 {
+                let mut plugin = Plugin::new_from_compiled(compiled.as_ref()).unwrap();
+                let Json(count) = plugin
+                    .call::<_, Json<Count>>("count_vowels", "aeiou")
+                    .unwrap();
+                assert_eq!(Count { count: 5 }, count);
+            }
+        }));
+    }
+
     for thread in threads {
         thread.join().unwrap();
     }
@@ -786,16 +871,24 @@ fn test_http_get() {
 #[test]
 #[cfg(feature = "http")]
 fn test_http_post() {
-    let manifest = Manifest::new([Wasm::data(WASM_HTTP)]).with_allowed_host("httpbin.org");
+    let (url, server) = local_post_echo_server(2);
+    let manifest = Manifest::new([Wasm::data(WASM_HTTP)]).with_allowed_host("127.0.0.1");
     let mut plugin = PluginBuilder::new(manifest).build().unwrap();
     let res: String = plugin
         .call(
             "http_request",
-            r#"{"url": "https://httpbin.org/post", "method": "POST", "data": "testing 123..."}"#,
+            format!(
+                r#"{}"url": "{url}", "method": "POST", "data": "testing 123..."{}"#,
+                "{", "}"
+            ),
         )
         .unwrap();
     assert!(!res.is_empty());
-    assert!(res.contains(r#""data": "testing 123...""#));
+    let res: serde_json::Value = serde_json::from_str(&res).unwrap();
+    assert_eq!(
+        res.get("data").and_then(serde_json::Value::as_str),
+        Some("testing 123...")
+    );
 
     // Bigger request
     let data = "a".repeat(10000);
@@ -803,13 +896,18 @@ fn test_http_post() {
         .call(
             "http_request",
             format!(
-                r#"{}"url": "https://httpbin.org/post", "method": "POST", "data": "{}"{}"#,
-                "{", data, "}",
+                r#"{}"url": "{url}", "method": "POST", "data": "{}"{}"#,
+                "{", data, "}"
             ),
         )
         .unwrap();
     assert!(!res.is_empty());
-    assert!(res.contains(&data));
+    let res: serde_json::Value = serde_json::from_str(&res).unwrap();
+    assert_eq!(
+        res.get("data").and_then(serde_json::Value::as_str),
+        Some(data.as_str())
+    );
+    server.join().unwrap();
 }
 
 #[test]
