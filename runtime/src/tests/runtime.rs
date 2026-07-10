@@ -317,10 +317,7 @@ fn test_timeout() {
     let end = std::time::Instant::now();
     let time = end - start;
     let err = output.unwrap_err().root_cause().to_string();
-    println!(
-        "Timed out plugin ran for {:?}, with error: {:?}",
-        time, &err
-    );
+    println!("Timed out plugin ran for {:?}, with error: {:?}", time, err);
     assert!(err == "timeout");
 }
 
@@ -403,7 +400,7 @@ fn test_fuel() {
     for _ in 0..10001 {
         let output: Result<&[u8], Error> = plugin.call("loop_forever", "abc123");
         let err = output.unwrap_err().root_cause().to_string();
-        println!("Fuel limited plugin exited with error: {:?}", &err);
+        println!("Fuel limited plugin exited with error: {:?}", err);
         assert!(err.contains("fuel"));
     }
 }
@@ -447,10 +444,7 @@ fn test_http_timeout() {
     let end = std::time::Instant::now();
     let time = end - start;
     let err = output.unwrap_err().root_cause().to_string();
-    println!(
-        "Timed out plugin ran for {:?}, with error: {:?}",
-        time, &err
-    );
+    println!("Timed out plugin ran for {:?}, with error: {:?}", time, err);
     assert!(err == "timeout");
 }
 

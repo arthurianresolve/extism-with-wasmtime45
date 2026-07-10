@@ -110,7 +110,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           override: true
-          toolchain: stable
+          toolchain: 1.97.0
 
       - uses: Swatinem/rust-cache@v2
         with:
