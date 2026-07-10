@@ -31,7 +31,7 @@ jobs:
       - name: Setup Rust env
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.97.0
           profile: minimal
           override: true
           target: ${{ matrix.target }}

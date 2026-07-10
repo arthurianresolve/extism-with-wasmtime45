@@ -25,10 +25,13 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
   - `wasmtime`: `43` -> `46.0.1`
   - `wasi-common`: `43` -> `46.0.1`
   - `wiggle`: `43` -> `46.0.1`
-- Raised the pinned Rust toolchain from `1.91.0` to `1.96.1` because Wasmtime 46
+- Raised the pinned Rust toolchain from `1.91.0` to `1.97.0` because Wasmtime 46
   requires Rust `1.94.0` or newer.
-- Rechecked the Rust 1.96.1 syntax and lint surface; no source changes were
-  required for either the workspace crates or the standalone kernel crate.
+- Rechecked the Rust 1.97.0 syntax and lint surface, including the new Clippy
+  `useless_borrows_in_formatting` lint in runtime tests; the standalone kernel
+  crate is pinned to the same Rust baseline.
+- Pinned GitHub workflow Rust setup steps to `1.97.0` so CI and release jobs use
+  the same Rust baseline as the checked-in toolchain files.
 - Updated workspace metadata to identify this fork as
   `1.30.0+wasmtime46` and point repository metadata at this GitHub repository.
 - Adapted the runtime to Wasmtime 45 and 46 API changes:
@@ -44,7 +47,7 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
 - Fixed pool checkout behavior by reserving capacity under the mutex and
   creating plugins outside the mutex. This prevents unrelated waiters from
   spending their timeout behind slow Wasmtime plugin compilation.
-- Aligned test code with the Rust 1.96 / Wasmtime 45 lint surface by marking a
+- Aligned test code with the Rust 1.97 / Wasmtime 46 lint surface by marking a
   derive-only conversion fixture with `#[expect(dead_code)]` and removing an
   unnecessary clone from a `Copy` `wasmtime::Val` in the pool test.
 - Integrated the cargo dependency refresh that was pending on fork maintenance
@@ -65,6 +68,10 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
 - Rechecked dependency freshness on the `protobuf-3.x` branch on 2026-07-05
   and upgraded the Wasmtime dependency train from `45.0.3` to `46.0.1` while
   keeping `protobuf = "3.7.2"`.
+- Rechecked dependency freshness on the `protobuf-3.x` branch on 2026-07-10,
+  confirmed fresh compatible Cargo resolution clears `RUSTSEC-2026-0204` in
+  `crossbeam-epoch`, and kept the branch on the protobuf 3.x toolchain with
+  `protobuf = "3.7.2"`.
 - Adapted fuel-limit handling for Wasmtime 46 so wrapper setup work does not
   consume the caller's configured guest-execution fuel budget, and failed guest
   execution resets the store before the next call.
@@ -189,13 +196,16 @@ were validated with:
 - `cargo check --manifest-path kernel/Cargo.toml --target wasm32-unknown-unknown`
 - `cargo fmt --all -- --check`
 
-The Rust 1.96.1 toolchain bump was syntax-checked with:
+The Rust 1.97.0 toolchain bump was syntax-checked with:
 
 - `cargo fmt --all -- --check`
 - `cargo check --workspace`
+- `cargo check -p extism --no-default-features`
 - `cargo check -p extism-convert --features protobuf`
 - `cargo clippy --workspace --all-targets -- -D warnings`
 - `cargo check --manifest-path kernel/Cargo.toml --target wasm32-unknown-unknown`
+- `cargo audit`
+- `cargo test -p extism`
 
 The Android default cache config fallback fix for `extism/extism#851` was
 validated with:
