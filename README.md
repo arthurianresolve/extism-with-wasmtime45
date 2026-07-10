@@ -65,6 +65,10 @@ Fork repository: `arthurianresolve/extism-with-wasmtime46`.
   `libc` remains on the stable `0.2` line rather than the `1.0.0-alpha` line.
 - Rechecked dependency freshness on the `protobuf-4.x` branch on 2026-07-05
   and upgraded the Wasmtime dependency train from `45.0.3` to `46.0.1`.
+- Rechecked dependency freshness on the `protobuf-4.x` branch on 2026-07-10,
+  confirmed fresh compatible Cargo resolution clears `RUSTSEC-2026-0204` in
+  `crossbeam-epoch`, and updated the release workflow Node.js pin from
+  `26.1.0` to `26.5.0`.
 - Adapted fuel-limit handling for Wasmtime 46 so wrapper setup work does not
   consume the caller's configured guest-execution fuel budget, and failed guest
   execution resets the store before the next call.
@@ -251,6 +255,16 @@ validated with:
 - `cargo test -p extism test_compiled_plugin_concurrent_instances`
 - `cargo test -p extism test_plugin_threads`
 - `cargo test -p extism pool::test_threads`
+- `cargo fmt --all -- --check`
+- `cargo check --workspace`
+- `cargo check -p extism --no-default-features`
+- `cargo clippy -p extism --all-targets -- -D warnings`
+- `cargo test -p extism`
+
+The 2026-07-10 dependency security check and Node.js 26.5.0 release workflow
+pin were validated with:
+
+- `cargo audit`
 - `cargo fmt --all -- --check`
 - `cargo check --workspace`
 - `cargo check -p extism --no-default-features`

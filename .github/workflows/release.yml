@@ -8,7 +8,7 @@ on:
 name: Release
 
 env:
-  NODE_VERSION: '26.1.0'
+  NODE_VERSION: '26.5.0'
 
 permissions:
   actions: read
